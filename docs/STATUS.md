@@ -6,7 +6,7 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 The first internal product build is implemented and locally verified: a launchable Android JSON inspector backed by pure Kotlin model and format modules. The final offline build passes all **64 JVM tests**. This is a foundation build, not the full MVP or a certification of SillyTavern interoperability.
 
-[GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was created **private** under the user's explicit authorization. The kickoff checkpoint is pushed to `main`; the verified product changes are being prepared for push. Keep the repository private during internal testing. Community publication is a later step.
+[GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was created **private** under the user's explicit authorization. The kickoff and verified product changes are pushed to `main`. Keep the repository private during internal testing. Community publication is a later step.
 
 **Approved UI:** C's character-library identity, A's native controls/navigation, and B's optional inspector on expanded windows. See [the recorded decision](DESIGN_DECISION.md). No further design-selection approval is required for that direction.
 
@@ -40,7 +40,7 @@ Passed: **64 tests, zero failures/errors/skips** (4 model, 55 format, 5 app). Th
 
 Fixture integrity audit passes: six pinned files and three helper JSON objects. This audit is not adapter/interoperability testing. Full evidence: [product build](build/PRODUCT_BOOTSTRAP.md), [foundation tests](testing/FOUNDATION_VERIFICATION.md), [format implementation](build/FORMAT_FOUNDATION.md).
 
-CI configuration exists; no remote CI pass is claimed until the pushed workflow finishes. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
+The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225026908) stopped before building because `sdkmanager` was not on the runner path. The workflow now explicitly sets up Android SDK tools before installing pinned packages. The corrected run remains pending; no remote CI pass is claimed. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
 
 ## Toolchain and constraints
 

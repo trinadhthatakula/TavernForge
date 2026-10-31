@@ -8,6 +8,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import org.koin.core.context.GlobalContext
+import com.valhalla.tavernforge.data.network.gemini.GeminiService
+import com.valhalla.tavernforge.data.security.AndroidGeminiCredentials
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,9 +26,21 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+        val compositionFactory = viewModelFactory {
+            initializer {
+                CompositionViewModel(GlobalContext.get().get<FormatServices>().engine, GlobalContext.get().get(),
+                    DocumentReader(applicationContext.contentResolver), ContentResolverDocumentWriter(applicationContext.contentResolver))
+            }
+        }
+        val generationFactory = viewModelFactory {
+            initializer {
+                val credentials = AndroidGeminiCredentials(applicationContext)
+                GenerationViewModel(GlobalContext.get().get<FormatServices>().engine, GlobalContext.get().get(), credentials, GeminiService(credentials))
+            }
+        }
         setContent {
             TavernForgeTheme {
-                TavernForgeApp(viewModel(factory = factory))
+                TavernForgeApp(viewModel(factory = factory), viewModel(factory = compositionFactory), viewModel(factory = generationFactory))
             }
         }
     }

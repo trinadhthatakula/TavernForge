@@ -4,10 +4,18 @@ import com.valhalla.tavernforge.core.model.ProjectSummary
 import com.valhalla.tavernforge.core.model.SourceEnvelope
 import com.valhalla.tavernforge.core.model.StoredProject
 import com.valhalla.tavernforge.format.JsonPatch
+import com.valhalla.tavernforge.core.model.LibraryQuery
+import com.valhalla.tavernforge.core.model.LibraryEntry
+import com.valhalla.tavernforge.core.model.ProjectMetadata
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-interface ProjectRepository {
+interface ProjectRepository : CompositionRepository {
     fun observeProjects(): Flow<List<ProjectSummary>>
+    fun observeLibrary(query: LibraryQuery = LibraryQuery()): Flow<List<LibraryEntry>> = observeProjects().map { filterLibrary(it, emptyList(), query) }
+    suspend fun projectMetadata(id: String): ProjectMetadata = ProjectMetadata(id, 0, emptyList())
+    suspend fun setProjectTags(id: String, expectedMetadataRevision: Long, tags: List<String>): ProjectMetadata =
+        throw ProjectStorageException(ProjectStorageError.INVALID_INPUT, "Local tags are unavailable in this repository.")
     suspend fun saveImported(fileName: String, source: SourceEnvelope): ProjectSummary
     suspend fun load(id: String): StoredProject
     suspend fun applyEdits(id: String, expectedRevision: Long, operations: List<JsonPatch>): StoredProject
@@ -16,7 +24,7 @@ interface ProjectRepository {
     suspend fun delete(id: String)
 }
 
-enum class ProjectStorageError { NOT_FOUND, INVALID_INPUT, CORRUPT_SOURCE, IO_FAILURE, DATABASE_FAILURE, REVISION_CONFLICT }
+enum class ProjectStorageError { NOT_FOUND, INVALID_INPUT, CORRUPT_SOURCE, IO_FAILURE, DATABASE_FAILURE, REVISION_CONFLICT, IN_USE }
 
 /** Messages are safe UI descriptions, never paths, JSON payloads or provider exception text. */
 class ProjectStorageException(

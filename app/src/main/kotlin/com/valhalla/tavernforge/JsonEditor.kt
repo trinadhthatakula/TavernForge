@@ -3,6 +3,7 @@ package com.valhalla.tavernforge
 import com.valhalla.tavernforge.core.model.Diagnostic
 import com.valhalla.tavernforge.core.model.SourceFormat
 import com.valhalla.tavernforge.format.CharacterDocument
+import com.valhalla.tavernforge.format.EntryLocator
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -15,7 +16,9 @@ internal const val MAX_NAMED_ENTRIES = 100
 enum class EditValueMode { TEXT, JSON }
 enum class EditAction { SET, REMOVE }
 
-data class EditorField(val path: String, val label: String, val preview: String, val exists: Boolean)
+data class EditorField(val path: String, val label: String, val preview: String, val exists: Boolean,
+    val control: FieldControl = FieldControl.TEXT, val required: Boolean = false, val nullable: Boolean = false,
+    val options: List<Pair<String, String>> = emptyList(), val help: String = "")
 
 data class EditInput(
     val path: String,
@@ -25,10 +28,13 @@ data class EditInput(
     val initialPath: String = path,
     val initialText: String = text,
     val initialAction: EditAction = action,
+    val initialMode: EditValueMode = mode,
     val limitExceeded: Boolean = false,
     val pathEditable: Boolean = false,
+    val field: EditorField? = null,
+    val stringItems: List<String>? = null,
 ) {
-    val changed: Boolean get() = path != initialPath || text != initialText || action != initialAction || limitExceeded
+    val changed: Boolean get() = path != initialPath || text != initialText || action != initialAction || mode != initialMode || limitExceeded
 }
 
 data class JsonEditorState(
@@ -38,6 +44,15 @@ data class JsonEditorState(
     val issues: List<Diagnostic> = emptyList(),
     val editIssues: List<Diagnostic> = emptyList(),
     val namedEntriesLimited: Boolean = false,
+    val mode: AuthoringMode = AuthoringMode.BASIC,
+    val entries: List<LoreEntryItem> = emptyList(),
+    val selectedEntry: EntryLocator? = null,
+    val canAddBook: Boolean = false,
+    val hasBook: Boolean = false,
+    val nativeBook: Boolean = false,
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
+    val guidance: Boolean = false,
 ) {
     val hasChanges: Boolean get() = pendingPaths.isNotEmpty() || input?.changed == true
     val hasUnappliedInput: Boolean get() = input?.changed == true

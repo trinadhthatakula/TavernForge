@@ -16,13 +16,15 @@ import java.nio.file.StandardOpenOption
  * Immutable, content-addressed originals and current snapshots in one app-private directory. All callers must use the
  * repository writer lock. Names supplied by document providers are never used as filesystem paths.
  */
-class ManagedJsonFiles(root: File, private val limits: JsonLimits = JsonLimits()) : ProjectFileStore {
+class ManagedJsonFiles(root: File, private val limits: JsonLimits = JsonLimits(), private val extension: String = "json", private val mediaType: String = "application/json") : ProjectFileStore {
+    init { require(extension in setOf("json", "png", "jpg")) }
+    private val sourceKey = Regex("[a-f0-9]{64}\\.$extension")
     private val directory = root.toPath().toAbsolutePath().normalize()
 
     override fun ensureSource(source: SourceEnvelope): String {
         if (source.sizeBytes !in 1..limits.maxBytes) invalid("The source exceeds the configured storage limit.")
         ensureDirectory()
-        val key = "${source.sha256}.json"
+        val key = "${source.sha256}.$extension"
         val target = path(key)
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
             read(key, source.sha256, source.sizeBytes)
@@ -50,19 +52,19 @@ class ManagedJsonFiles(root: File, private val limits: JsonLimits = JsonLimits()
     }
 
     override fun read(fileKey: String, expectedSha256: String, expectedSizeBytes: Int): SourceEnvelope {
-        if (!HASH.matches(expectedSha256) || fileKey != "$expectedSha256.json") corrupt("The saved source reference is invalid.")
+        if (!HASH.matches(expectedSha256) || fileKey != "$expectedSha256.$extension") corrupt("The saved source reference is invalid.")
         ensureDirectory()
         return readPath(path(fileKey), expectedSha256, expectedSizeBytes)
     }
 
     override fun prune(referenced: Set<String>) {
         // Validate every reference before deleting anything, even when the invalid one sorts last.
-        if (referenced.any { !SOURCE_KEY.matches(it) }) corrupt("The library contains an invalid source reference. No files were removed.")
+        if (referenced.any { !sourceKey.matches(it) }) corrupt("The library contains an invalid source reference. No files were removed.")
         ensureDirectory()
         Files.newDirectoryStream(directory).use { children ->
             children.forEach { child ->
                 val name = child.fileName.toString()
-                val orphanSource = SOURCE_KEY.matches(name) && name !in referenced
+                val orphanSource = sourceKey.matches(name) && name !in referenced
                 val temporary = name.startsWith(".pending-") && name.endsWith(".tmp")
                 // Never recurse or touch unknown files/directories. Deleting a symlink deletes only it.
                 if ((orphanSource || temporary) && !Files.isDirectory(child, LinkOption.NOFOLLOW_LINKS)) {
@@ -83,14 +85,14 @@ class ManagedJsonFiles(root: File, private val limits: JsonLimits = JsonLimits()
                 if (channel.read(buffer) < 0) corrupt("The saved source ended before its recorded size.")
             }
             if (channel.read(ByteBuffer.allocate(1)) != -1) corrupt("The saved source grew beyond its recorded size.")
-            val source = SourceEnvelope(bytes)
+            val source = SourceEnvelope(bytes, mediaType)
             if (source.sha256 != expectedSha256) corrupt("The saved source failed its integrity check. Its bytes have been retained.")
             return source
         }
     }
 
     private fun path(key: String): Path {
-        if (!SOURCE_KEY.matches(key)) corrupt("The saved source reference is invalid.")
+        if (!sourceKey.matches(key)) corrupt("The saved source reference is invalid.")
         return directory.resolve(key)
     }
 

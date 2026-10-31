@@ -42,6 +42,9 @@ internal fun LibraryScreen(
     onQuery: (String) -> Unit,
     onSort: (ProjectSort) -> Unit,
     onRetry: () -> Unit,
+    onCreate: () -> Unit,
+    onArtwork: () -> Unit,
+    onGenerate: () -> Unit,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(300.dp),
@@ -59,6 +62,9 @@ internal fun LibraryScreen(
                 Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(onClick = onImport, enabled = !state.busy) { Text(stringResource(R.string.import_json)) }
+                OutlinedButton(onClick = onCreate, enabled = !state.busy) { Text("Create manually") }
+                OutlinedButton(onClick = onArtwork, enabled = !state.busy) { Text("PNG cards and artwork") }
+                OutlinedButton(onClick = onGenerate, enabled = !state.busy) { Text("Optional Gemini and key settings") }
                 Text(stringResource(R.string.privacy_label), style = MaterialTheme.typography.labelLarge)
                 LibraryFeedback(state)
             }
@@ -156,6 +162,7 @@ internal fun LibraryFeedback(state: InspectionState) {
                 ProjectStorageError.IO_FAILURE -> R.string.storage_io
                 ProjectStorageError.DATABASE_FAILURE -> R.string.storage_database
                 ProjectStorageError.REVISION_CONFLICT -> R.string.storage_revision_conflict
+                ProjectStorageError.IN_USE -> R.string.storage_in_use
             }), color = MaterialTheme.colorScheme.error)
         }
         state.exportFailure?.let { failure ->

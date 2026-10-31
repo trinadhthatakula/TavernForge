@@ -1,12 +1,13 @@
 <resources>
+    <string name="storage_in_use">This item is linked to another project. Remove its associations before deleting it.</string>
     <string name="app_name">TavernForge</string>
     <string name="internal_build">INTERNAL FOUNDATION BUILD</string>
     <string name="home_title">A world of your own.</string>
-    <string name="home_subtitle">Keep your characters and worlds close. Inspect a JSON file, then save its original source in your local library.</string>
+    <string name="home_subtitle">Keep your characters and worlds close. Import a JSON file or create a character or lorebook in your local library.</string>
     <string name="import_json">Inspect JSON</string>
     <string name="import_another">Inspect another file</string>
     <string name="privacy_label">Local inspection · No account needed</string>
-    <string name="scope_body">Character V1, V2 and V3 JSON, V2 and V3 lorebooks, and SillyTavern World Info. Saved JSON editing and export are available. PNG cards, full authoring controls, and Gemini are still being built.</string>
+    <string name="scope_body">Create, edit and export character V1, V2 and V3 JSON, V2 and V3 lorebooks, and native SillyTavern World Info. Manual authoring works offline. PNG cards, associations and Gemini are being integrated.</string>
     <string name="session_note">Unsaved inspection stays in memory. Save a draft to reopen it after the app restarts.</string>
     <string name="inspect_title">File inspection</string>
     <string name="view_results">View inspection</string>
@@ -66,7 +67,7 @@
     <string name="cannot_save_malformed">This file could not be parsed as a JSON document. Choose a readable JSON file before saving.</string>
     <string name="save_draft">Save draft to library</string>
     <string name="rename_project">Rename library title</string>
-    <string name="rename_note">This changes the library title only. Names and content inside the imported JSON stay unchanged.</string>
+    <string name="rename_note">This changes the library title only. Names and content inside the JSON stay unchanged.</string>
     <string name="library_name">Library title</string>
     <string name="rename_confirm">Rename</string>
     <string name="duplicate_project">Duplicate project</string>
@@ -102,7 +103,7 @@
     <string name="edit_content">Edit saved JSON</string>
     <string name="close_editor">Close editor</string>
     <string name="edit_revision">Saved revision %1$d</string>
-    <string name="editor_preservation">The imported original stays intact. Apply explicit field changes, review validation, then save. Unsaved edits stay in memory and are lost if the app process closes.</string>
+    <string name="editor_preservation">The original source stays intact. Apply explicit field changes, review validation, then save. Undo covers unsaved commands. Unsaved edits stay in memory and are lost if the app process closes.</string>
     <plurals name="pending_changes">
         <item quantity="one">%1$d pending change</item>
         <item quantity="other">%1$d pending changes</item>
@@ -120,7 +121,6 @@
     <string name="text_value_help">This field will be a JSON string. Your text is not interpreted as JSON.</string>
     <string name="json_value_help">Enter a complete JSON value. Strings need quotes; arrays use brackets. For no group greetings, explicitly enter []. Existing value types are not changed until you apply.</string>
     <string name="previous_value">Previous value: %1$s</string>
-    <string name="new_value">New value</string>
     <string name="remove_value_help">Applying removes this member or array item from the draft. Required fields may then need repair before export.</string>
     <string name="editor_input_limit">This input exceeds the editor limit (1 Mi characters for a value or 4096 characters for a path). The extra input was not accepted.</string>
     <string name="apply_value">Apply value to draft</string>
@@ -132,7 +132,7 @@
     <string name="draft_validation">Draft validation</string>
     <string name="first_issues_shown">The first 20 issues are shown here. Saving retains every field and the full validation still controls export.</string>
     <string name="editing_project">Preparing the JSON edit…</string>
-    <string name="notice_edits_saved">Changes saved as a new local revision. The imported original is intact.</string>
+    <string name="notice_edits_saved">Changes saved as a new local revision. The original source is intact.</string>
     <string name="storage_revision_conflict">This project changed since it was opened. Your edits are still available. Close the editor without saving, reopen the project, and review your changes against its current revision.</string>
     <string name="export_json">Export saved JSON</string>
     <string name="export_requires_save">Save this import to the library before editing or exporting.</string>

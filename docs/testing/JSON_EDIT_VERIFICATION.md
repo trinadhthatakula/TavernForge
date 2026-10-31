@@ -6,9 +6,17 @@ Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), sec
 
 On 1 November 2026 the supervisor's complete offline build passed **179 JVM tests**: 4 model, 91 format, 34 data and 50 app, zero failures/errors/skips. Both Android lint reports contain zero issues. Command: `./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug :data:assembleDebugAndroidTest :data:lintDebug :app:lintDebug --offline --no-daemon --console plain` (27s). After the compact-navigation/autofocus correction, `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --offline --no-daemon --console plain` also passed (20s); engine/storage unchanged.
 
-The user authorized existing AVDs after disconnecting the physical phone. `FrameGallery_API36_1` launched as `emulator-5554`, API 36, without wiping data. After installing `data-debug-androidTest.apk` with `adb install -r -t`, the raw package-filtered runner reported **`OK (9 tests)`**, 0.272s, `INSTRUMENTATION_CODE: -1`. This includes all six original Room checks and three new migration/edit/duplicate checks. It is emulator SQLite/file evidence, not physical power-loss evidence. System-picker editing/export UI smoke is still in progress at this checkpoint.
+The user authorized existing AVDs after disconnecting the physical phone. `FrameGallery_API36_1` launched as `emulator-5554`, API 36, without wiping data. After installing `data-debug-androidTest.apk` with `adb install -r -t`, the raw package-filtered runner reported **`OK (9 tests)`**, 0.272s, `INSTRUMENTATION_CODE: -1`. This includes all six original Room checks and three new migration/edit/duplicate checks. It is emulator SQLite/file evidence, not physical power-loss evidence. System-picker editing/export UI smoke subsequently passed as detailed below.
 
 Version 0.4.0-internal/code 4 APK installed successfully: 15,402,343 bytes, SHA-256 `fcb460fd8eccb4f8618f4931cf59b2f5bec3347ed9b9e65e20199d10ca9b3564`. Initial cold launch before the navigation correction returned `Status: ok`, 1348ms. Fixture integrity audit and actionlint pass. The tester independently wrote/reviewed tests but did not execute builds or operate the emulator; the supervisor observed the results above.
+
+## Real emulator picker and persistence check
+
+On the same existing API 36 AVD, the supervisor selected the synthetic `spec-v3-rich.json` copied as `TavernForge-edit-test.json` through OpenDocument, saved it to the library, and changed `/data/name` from `Archive Keeper` to `Archive Keeper AVD` using Edit value → Apply → Save. The UI reported revision 1. After `adb -s emulator-5554 shell am force-stop com.valhalla.tavernforge` and `am start -W`, cold launch succeeded in 1071ms and the saved project reopened at revision 1 without unexpected keyboard focus.
+
+Export saved JSON displayed the immutable revision/format/byte-size preview, then opened CreateDocument. Saving into Downloads produced `TavernForge-edit-test-edited.json` (1,734 bytes), and the app displayed “JSON export completed.” After `adb pull`, Python parsed the original and exported synthetic files with `parse_int=str, parse_float=str`: restoring only the expected `/data/name` change made both trees equal. All other fields, unknown extensions and number spellings were retained. `adb shell run-as ... sha256sum files/project-sources/3c39b7d2825e74cc5e0c97d4bee00eaf77eccbc59e0281e8fa1ee40db92810a2.json` confirms the immutable managed original still matches the fixture. A local screenshot was visually reviewed; it is not committed. The synthetic project and export remain on the AVD for subsequent upgrade checks.
+
+This exercises one system DocumentsUI provider on an emulator; it does not establish every provider, physical durability, accessibility or SillyTavern runtime behavior. Hosted checks are pending for this increment.
 
 ## Added coverage
 
@@ -30,7 +38,7 @@ The supervisor is the sole Gradle owner. Focused commands from the project root:
 
 The full integration also requires the unchanged core suite, the app owner's editor/writer tests, app/data lint, APK build, and fixture audit. The raw device runner should include **both** `ProjectLibraryDeviceTest` and `ProjectEditingDeviceTest`; the six prior library tests and three new tests produce nine expected physical-device methods before any later additions. Installation success alone, Gradle exit code zero, or an empty HTML test report is insufficient evidence.
 
-App-specific pending-edit confirmation, stale picker completion, strict-export gating, failure reporting, and immutable export-byte selection are tested by the app owner. The supervisor separately verifies the physical-device upgrade of the existing 0.3 library and the CreateDocument workflow. Record actual commands, XML/raw counts, failures and final artifact fingerprints here or in current status after execution.
+App-specific pending-edit confirmation, stale picker completion, strict-export gating, failure reporting, and immutable export-byte selection are tested by the app owner. The supervisor used the authorized existing AVD for the CreateDocument workflow because the physical device is disconnected; physical-device upgrade remains unverified for 0.4. Record actual commands, XML/raw counts, failures and final artifact fingerprints here or in current status after execution.
 
 ## Review and limits
 

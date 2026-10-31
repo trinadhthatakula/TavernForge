@@ -40,7 +40,7 @@ Passed: **64 tests, zero failures/errors/skips** (4 model, 55 format, 5 app). Th
 
 Fixture integrity audit passes: six pinned files and three helper JSON objects. This audit is not adapter/interoperability testing. Full evidence: [product build](build/PRODUCT_BOOTSTRAP.md), [foundation tests](testing/FOUNDATION_VERIFICATION.md), [format implementation](build/FORMAT_FOUNDATION.md).
 
-The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225026908) stopped before building because `sdkmanager` was not on the runner path. The workflow now explicitly sets up Android SDK tools before installing pinned packages. The corrected run remains pending; no remote CI pass is claimed. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
+The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225026908) stopped before building because `sdkmanager` was not on the runner path. The next setup attempt requested the obsolete SDK `tools` package through the action's defaults. The workflow now explicitly sets up command-line tools and requests only `platform-tools` before installing pinned platform/build-tools packages. The corrected run remains pending; no remote CI pass is claimed. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
 
 ## Toolchain and constraints
 

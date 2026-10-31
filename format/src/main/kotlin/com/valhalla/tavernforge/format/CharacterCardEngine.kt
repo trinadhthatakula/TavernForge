@@ -27,6 +27,48 @@ class CharacterCardEngine(val limits: JsonLimits = JsonLimits()) {
         } catch (failure: JsonFailure) { ParseResult.Failure(source, listOf(failure.diagnostic)) }
     }
 
+    /** Field JSON uses the same duplicate-name/resource checks as whole documents. */
+    fun parseValue(bytes: ByteArray): JsonValueResult = try {
+        JsonValueResult.Success(json.parse(bytes))
+    } catch (failure: JsonFailure) {
+        JsonValueResult.Failure(listOf(failure.diagnostic))
+    }
+
+    /**
+     * Reconstitute a saved draft without relabeling its source or claiming no-op fidelity for edits.
+     * Current content is allowed to fail schema validation; it must remain bounded JSON of the
+     * original kind, with exactly the same version markers. No migration occurs here.
+     */
+    fun restore(original: SourceEnvelope, current: SourceEnvelope, revision: Long): ParseResult {
+        fun failure(code: String, message: String) = ParseResult.Failure(original,
+            listOf(Diagnostic(code, message, phase = ValidationPhase.COMPATIBILITY)))
+        if (revision < 0L) return failure("INVALID_REVISION", "A saved document revision cannot be negative.")
+        if (original.mediaType != current.mediaType) return failure("SOURCE_MISMATCH", "The current snapshot changed its source media type.")
+        val originalResult = parse(original.bytes())
+        if (originalResult is ParseResult.Failure) return ParseResult.Failure(original, originalResult.issues)
+        originalResult as ParseResult.Success
+        val currentResult = parse(current.bytes())
+        if (currentResult is ParseResult.Failure) return ParseResult.Failure(original, currentResult.issues)
+        currentResult as ParseResult.Success
+        val sourceDocument = originalResult.document
+        val currentDocument = currentResult.document
+        if (revision == 0L && !original.bytes().contentEquals(current.bytes())) {
+            return failure("SOURCE_MISMATCH", "Revision zero must retain the exact imported bytes.")
+        }
+        if (revision > 0L && !sourceDocument.isSupportedFormat) {
+            return failure("UNSUPPORTED_SOURCE_FORMAT", "Editing this source format is not supported.")
+        }
+        if (sourceDocument.tree["spec"] != currentDocument.tree["spec"] ||
+            sourceDocument.tree["spec_version"] != currentDocument.tree["spec_version"] ||
+            (currentDocument.sourceFormat != sourceDocument.sourceFormat && currentDocument.sourceFormat != SourceFormat.UNKNOWN)) {
+            return failure("CONVERSION_REQUIRED", "A saved snapshot cannot change its source format or version.")
+        }
+        return ParseResult.Success(CharacterDocument.restored(original, currentDocument.tree, revision, sourceDocument.sourceFormat))
+    }
+
+    /** Local draft snapshot only. Schema validation and strict export remain separate operations. */
+    fun snapshot(document: CharacterDocument): ExportResult = serialize(document)
+
     fun validateV2(document: CharacterDocument): ValidationReport = V2Validator.validate(document)
 
     fun validate(document: CharacterDocument): ValidationReport = JsonFormatValidator.validate(document)

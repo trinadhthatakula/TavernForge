@@ -189,7 +189,7 @@ class RoomProjectRepositoryTest {
         assertFalse(File(directory, sourceKey).exists())
     }
 
-    @Test fun missingCorruptAndUnsupportedRevisionSourcesCannotLoadOrDuplicate() = runBlocking<Unit> {
+    @Test fun missingCorruptAndNegativeRevisionSourcesCannotLoadOrDuplicate() = runBlocking<Unit> {
         val repo = repository()
         val saved = repo.saveImported("keeper.json", source())
         val record = index.records.getValue(saved.id)
@@ -202,7 +202,7 @@ class RoomProjectRepositoryTest {
         path.delete()
         failure(ProjectStorageError.CORRUPT_SOURCE) { repo.load(saved.id) }
         disk.ensureSource(source())
-        index.records[saved.id] = record.copy(documentRevision = 1)
+        index.records[saved.id] = record.copy(documentRevision = -1)
         failure(ProjectStorageError.CORRUPT_SOURCE) { repo.load(saved.id) }
         index.records[saved.id] = record.copy(summary = record.summary.copy(sourceFormat = SourceFormat.V3))
         failure(ProjectStorageError.CORRUPT_SOURCE) { repo.load(saved.id) }

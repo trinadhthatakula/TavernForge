@@ -23,6 +23,9 @@ class CharacterDocument private constructor(
     internal companion object {
         fun parsed(source: SourceEnvelope, tree: JsonObject, sourceFormat: SourceFormat): CharacterDocument =
             CharacterDocument(source, tree, 0, sourceFormat, true)
+
+        fun restored(source: SourceEnvelope, tree: JsonObject, revision: Long, sourceFormat: SourceFormat): CharacterDocument =
+            CharacterDocument(source, tree, revision, sourceFormat, revision == 0L)
     }
 
     /** A deep snapshot: casting a returned map/list cannot mutate this document. */
@@ -76,6 +79,12 @@ class CharacterDocument private constructor(
 sealed interface ParseResult {
     data class Success(val document: CharacterDocument) : ParseResult
     data class Failure(val source: SourceEnvelope?, val issues: List<Diagnostic>) : ParseResult
+}
+
+/** Bounded parsing for an explicitly edited field value, including scalar JSON values. */
+sealed interface JsonValueResult {
+    data class Success(val value: JsonElement) : JsonValueResult
+    data class Failure(val issues: List<Diagnostic>) : JsonValueResult
 }
 
 sealed interface JsonPatch {

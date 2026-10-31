@@ -142,6 +142,9 @@ internal fun LibraryFeedback(state: InspectionState) {
                 LibraryOperation.RENAMING -> R.string.renaming_project
                 LibraryOperation.DUPLICATING -> R.string.duplicating_project
                 LibraryOperation.DELETING -> R.string.deleting_project
+                LibraryOperation.EDITING -> R.string.editing_project
+                LibraryOperation.PREPARING_EXPORT -> R.string.preparing_export
+                LibraryOperation.EXPORTING -> R.string.writing_export
                 null -> R.string.reading
             }))
         }
@@ -152,6 +155,14 @@ internal fun LibraryFeedback(state: InspectionState) {
                 ProjectStorageError.CORRUPT_SOURCE -> R.string.storage_corrupt
                 ProjectStorageError.IO_FAILURE -> R.string.storage_io
                 ProjectStorageError.DATABASE_FAILURE -> R.string.storage_database
+                ProjectStorageError.REVISION_CONFLICT -> R.string.storage_revision_conflict
+            }), color = MaterialTheme.colorScheme.error)
+        }
+        state.exportFailure?.let { failure ->
+            Text(stringResource(when (failure) {
+                ExportFailure.VALIDATION -> R.string.export_failed_validation
+                ExportFailure.WRITE -> R.string.export_failed_write
+                ExportFailure.UNAVAILABLE -> R.string.export_unavailable
             }), color = MaterialTheme.colorScheme.error)
         }
         state.notice?.let { notice ->
@@ -160,6 +171,8 @@ internal fun LibraryFeedback(state: InspectionState) {
                 LibraryNotice.RENAMED -> R.string.notice_renamed
                 LibraryNotice.DUPLICATED -> R.string.notice_duplicated
                 LibraryNotice.DELETED -> R.string.notice_deleted
+                LibraryNotice.EDITS_SAVED -> R.string.notice_edits_saved
+                LibraryNotice.EXPORTED -> R.string.notice_exported
             }))
         }
     }

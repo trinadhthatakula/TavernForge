@@ -14,7 +14,10 @@ data class ProjectSummary(
     val sourceSizeBytes: Int,
 )
 
-/** This first persistence slice stores immutable imported JSON, with no payload edits. */
-data class StoredProject(val summary: ProjectSummary, val source: SourceEnvelope) {
-    val documentRevision: Long get() = 0
-}
+/** Original imported bytes remain immutable; current content and its revision are saved separately. */
+data class StoredProject(
+    val summary: ProjectSummary,
+    val source: SourceEnvelope,
+    val currentSource: SourceEnvelope = source,
+    val documentRevision: Long = 0,
+)

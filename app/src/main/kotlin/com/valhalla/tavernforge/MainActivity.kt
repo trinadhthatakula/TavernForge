@@ -20,6 +20,7 @@ class MainActivity : ComponentActivity() {
                     DocumentReader(applicationContext.contentResolver),
                     GlobalContext.get().get(),
                     GlobalContext.get().get(),
+                    writer = ContentResolverDocumentWriter(applicationContext.contentResolver),
                 )
             }
         }

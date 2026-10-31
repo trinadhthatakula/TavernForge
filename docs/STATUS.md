@@ -4,6 +4,12 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
+The user has authorized autonomous completion of the full planned app, with secrets excluded from Git/logs and progress documented. Existing AVDs are authorized for testing. See the [autonomous execution plan](planning/AUTONOMOUS_EXECUTION.md); the supervisor continues through the remaining increments without waiting for user supervision.
+
+**Saved editing/export implemented and verified locally:** internal version **0.4.0** adds preserved original/current snapshots, revision conflict protection, a non-destructive Room v1→v2 migration, explicit field/value editing and strict same-format JSON export through the system picker. **179 JVM tests**, **nine Room tests on the existing API 36 AVD**, and both Android lints pass. Real picker smoke imported a synthetic V3 fixture, saved a name edit, reopened revision 1 after force-stop, and exported it; independent comparison found only the intended name change and preserved every other value/number lexeme. [Detailed evidence](testing/JSON_EDIT_VERIFICATION.md). Hosted checks for this increment are pending.
+
+**Next implementation underway:** manual templates/lore editing, PNG/artwork/associations, and Gemini credential/provider foundations are being built in an isolated checkout. These are not features of the verified 0.4 APK yet. Scope and acceptance are in [manual authoring](planning/MANUAL_AUTHORING.md), [PNG/combine](planning/PNG_COMBINE.md), and [Gemini security](planning/GEMINI_SECURITY.md).
+
 **Implemented and verified locally and on GitHub:** the [local JSON project library](planning/PROJECT_LIBRARY.md), the first M2 persistence increment. Room 3/managed files, library UI and independent tests are integrated with all six user-approved Dependabot PRs. Version **0.3.0-internal** passes **134 JVM tests**, **six Room tests on the physical device**, and **both Android lints**; the upgraded isolated probe passes its three tests. The APK is installed, and a V3 source saved through the UI reopens after force-stop/restart and removal of its temporary Downloads file. Hosted build, CodeQL, dependency submission/review and APK attestation have passed; details below.
 
 The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info. The inspector selects the detected format's validation rules and shows its version and lore-entry count. Engine edits and strict exports retain the source kind, unknown data, and number lexemes. The final offline build passes **102 JVM tests** and Android lint; the toolchain is unchanged. The user subsequently authorized public repository access and Dependabot. This is an internal JSON inspector, not the full MVP or a certification of SillyTavern interoperability.
@@ -16,11 +22,13 @@ The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2
 
 - `:core:model`: owned source bytes/SHA-256, resource budgets, diagnostics, projections, minimal project identity.
 - `:format`: strict bounded UTF-8/JSON parsing, duplicate-name detection, unknown/null/number preservation, atomic revision-aware JSON Pointer patches, version-dispatched schema checks and strict same-format JSON export for the six supported JSON kinds. Untouched valid exports retain exact source bytes. Unknown/future versions remain inspectable with strict exports blocked. See the [support matrix](build/JSON_FORMAT_SUPPORT.md).
-- `:data`: Room 3 project metadata, app-private content-addressed original JSON, integrity checks, interruption recovery, and repository operations for save/reopen/rename/duplicate/delete. Schema-invalid and unknown/future JSON can be saved unchanged as drafts; malformed JSON cannot.
-- `:app`: real system-picker JSON intake, bounded streaming, background parsing, validation diagnostics, compact/expanded inspection, and the local library with search/sort and explicit save. App binding uses the Koin compiler plugin. Saved projects persist; unsaved inspection is in memory and requires selecting the file again after process death. Editing/export are engine APIs, not exposed app features yet.
+- `:data`: Room 3 project metadata, app-private content-addressed original/current JSON, integrity checks, interruption recovery, revision-checked editing and save/reopen/rename/duplicate/delete. The v1→v2 migration preserves existing sources. Schema-invalid edits can be saved as drafts; malformed JSON cannot.
+- `:app`: real system-picker JSON intake, bounded streaming, background parsing, validation diagnostics, compact/expanded inspection, and the local library with search/sort and explicit save. App binding uses the Koin compiler plugin. Saved projects persist; unsaved inspection is in memory and requires selecting the file again after process death. Saved JSON field/value editing and strict export are available through native controls and the system picker. Pending field input requires explicit Apply or Discard; source versions stay fixed.
 - Root Gradle wrapper, pinned version catalog and dependency locks; [CI workflow](../.github/workflows/android.yml) with tests, fixture audit, APK build, and seven-day artifacts.
 
 ## Agent assignments and results
+
+Current ownership in the isolated next-feature checkout: `edit_persistence` owns PNG/combine format sources, assets/links and data persistence; `edit_ui` owns manual-authoring helpers and app UI/history; `edit_tests` owns generation policy, Keystore and Gemini transport. The supervisor owns integration, status, builds, Git/CI and emulator operation. Each assignment has disjoint paths and acceptance criteria; shared contracts are coordinated before changes. Earlier completed assignments follow.
 
 | Owner | Scope | Result |
 | --- | --- | --- |
@@ -73,7 +81,7 @@ Hosted integration evidence on `b4053db`: [Android build and attestation](https:
 
 M0 bootstrap is complete for this internal build: repository, pinned wrapper/catalog/locks, product modules, local verification and a successful hosted CI build. M1 has the JSON model/parser/patch/validator/export foundation for character V1/V2/V3, V2/V3 lorebooks and native World Info. PNG/APNG, media, conversion review and real upstream interoperability still remain pending. M2 and later product milestones remain incomplete.
 
-Next implementation work: editing/export UI over the persisted project model, full import/asset association and the planned binary containers. Gemini remains optional future work with independent permissions and Keystore-backed credentials; this internal APK has no key flow or network permission. Finish broader device and interoperability tests before community readiness claims.
+Next implementation work: complete manual authoring, PNG/artwork association, optional Gemini and lifecycle/adaptive hardening. The verified 0.4 APK has no key flow or network permission. The separate next-feature branch must pass independent security, preservation and emulator checks before integration. Finish broader device and interoperability tests before community readiness claims.
 
 Open decisions include public release timing, final public identity/distribution, final minimum SDK policy, cross-version migration scope, and generation-history defaults. Hosting is resolved to the public GitHub repository above.
 

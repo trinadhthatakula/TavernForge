@@ -1,0 +1,51 @@
+name: Android internal build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 27
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '27'
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+      - name: Install pinned Android SDK packages
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
+      - name: Verify fixture provenance
+        run: python3 format/fixtures/verify_manifest.py
+      - name: Test foundations and build internal APK
+        run: ./gradlew :core:model:test :format:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --no-daemon --console plain
+      - name: Retain internal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: TavernForge-internal-${{ github.sha }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ github.sha }}
+          path: |
+            core/model/build/reports/tests/
+            format/build/reports/tests/
+            app/build/reports/tests/
+          retention-days: 7

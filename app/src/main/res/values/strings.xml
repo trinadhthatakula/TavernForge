@@ -1,0 +1,40 @@
+<resources>
+    <string name="app_name">TavernForge</string>
+    <string name="internal_build">INTERNAL FOUNDATION BUILD</string>
+    <string name="home_title">A world of your own.</string>
+    <string name="home_subtitle">Your characters start with a file. Inspect a character card before bringing its story into your library.</string>
+    <string name="import_json">Inspect character JSON</string>
+    <string name="import_another">Inspect another file</string>
+    <string name="empty_title">Your workshop is ready.</string>
+    <string name="empty_body">Choose a JSON file to see its format and validation results. Nothing is uploaded or changed.</string>
+    <string name="privacy_label">Local inspection · No account needed</string>
+    <string name="scope_title">What this build can do</string>
+    <string name="scope_body">Inspect character JSON and check the V2 structure. Library saving, editing, PNG cards, lorebooks, and Gemini are still being built.</string>
+    <string name="session_note">Inspection stays in memory. Reopen your file after the app restarts.</string>
+    <string name="inspect_title">File inspection</string>
+    <string name="view_results">View inspection</string>
+    <string name="reading">Reading and validating your file…</string>
+    <string name="close_inspection">Close inspection</string>
+    <string name="clear_file">Clear file</string>
+    <string name="no_selection">No file selected</string>
+    <string name="no_selection_body">Open a character JSON file from the workshop to inspect its structure.</string>
+    <string name="unnamed_character">Unnamed character</string>
+    <string name="valid_v2">V2 structure passes</string>
+    <string name="needs_review">Needs review</string>
+    <string name="schema_note">This checks the pinned V2 contract. Full SillyTavern interoperability has not been verified yet.</string>
+    <string name="preservation_note">Inspection never writes to the original file. Unknown fields are retained by the format engine.</string>
+    <string name="source_format">Detected format</string>
+    <string name="source_size">File size</string>
+    <string name="source_hash">SHA-256</string>
+    <string name="validation_title">Validation</string>
+    <string name="no_issues">No structural issues found for the V2 target.</string>
+    <string name="issue_location">Location: %1$s</string>
+    <plurals name="byte_size">
+        <item quantity="one">%1$d byte</item>
+        <item quantity="other">%1$d bytes</item>
+    </plurals>
+    <string name="failure_title">Could not inspect this file</string>
+    <string name="failure_large">This file exceeds the 4 MiB inspection limit. Choose a smaller character JSON file.</string>
+    <string name="failure_permission">Access to the file was denied. Choose it again using the system picker.</string>
+    <string name="failure_read">The document provider could not read this file. Try another local copy.</string>
+</resources>

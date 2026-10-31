@@ -1,6 +1,6 @@
 # Architecture and canonical contracts
 
-Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), sections 04–06. Recovered 31 October 2026. Proposed implementation contracts for supervisor review; no production API exists yet.
+Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), sections 04–06. Recovered 31 October 2026. Supervisor-reviewed architecture contracts. The first model/JSON foundation is implemented; see [implemented API and limits](../build/FORMAT_FOUNDATION.md). Persistence, generation and several entities below remain planned.
 
 ## Minimal modules
 

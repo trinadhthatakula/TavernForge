@@ -1,6 +1,6 @@
 # Dependency matrix and compatibility gate
 
-Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), section 07. Official sources rechecked 31 October 2026 after interruption. **Published versions and the local compile/code-generation probe are verified.** The requested AGP/Gradle/Kotlin versions remain unchanged. The final Android library probe and three JVM checks passed; see [build evidence](../build/COMPATIBILITY_SMOKE.md) and [independent review](../testing/SMOKE_REVIEW.md). The support limits below remain applicable; application packaging and device behavior are unverified.
+Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), section 07. Official sources rechecked 31 October 2026 after interruption. **Published versions and the local compile/code-generation probe are verified.** The requested AGP/Gradle/Kotlin versions remain unchanged. The final Android library probe and three JVM checks passed; see [build evidence](../build/COMPATIBILITY_SMOKE.md) and [independent review](../testing/SMOKE_REVIEW.md). The support limits below remain applicable; The product debug APK and its JVM tests subsequently passed; see [product build evidence](../build/PRODUCT_BOOTSTRAP.md) for added UI pins. Device behavior remains unverified.
 
 ## Requested baseline and documented limits
 

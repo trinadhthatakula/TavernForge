@@ -4,70 +4,59 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
-Product scaffold and format foundation implementation are in progress following user authorization. The isolated compatibility probe passed. The user also authorized a private GitHub repository; it must remain private during the first internal test-build phase. Public community distribution is a later step.
+The first internal product build is implemented and locally verified: a launchable Android JSON inspector backed by pure Kotlin model and format modules. The final offline build passes all **64 JVM tests**. This is a foundation build, not the full MVP or a certification of SillyTavern interoperability.
 
-**UI decision approved by the user:** C’s character library, A’s native controls and navigation, and B’s optional inspector on expanded windows. The approval was given in the project conversation after reviewing the comparison choices. This clears the design selection gate; dependency validation and format correctness requirements still apply.
+[GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was created **private** under the user's explicit authorization. The kickoff checkpoint is pushed to `main`; the verified product changes are being prepared for push. Keep the repository private during internal testing. Community publication is a later step.
 
-## Agent assignments
+**Approved UI:** C's character-library identity, A's native controls/navigation, and B's optional inspector on expanded windows. See [the recorded decision](DESIGN_DECISION.md). No further design-selection approval is required for that direction.
 
-| Role | Scope and owned paths | Deliverable / acceptance | Status |
-| --- | --- | --- | --- |
-| Agent 0 — supervisor | Root instructions, repository setup, `docs/STATUS.md`, `docs/design-comparison.html` | Consistent instructions, integrated findings, reviewable design comparison, honest verification status | Discovery integrated; decision and recovery status saved |
-| Agent 1 — scope and dependencies (`recover_planning`) | `docs/planning/**` | Task graph and contracts; exact version matrix backed by official evidence; pinned upstream format definitions | Complete for discovery |
-| Agent 3 — UI/UX | `docs/design/**` | Three distinct standalone proposals and rationale covering comparable screens, all workflows, accessibility, adaptive layouts | Proposals saved; recommended hybrid approved |
-| Agent 4 — tester (`recover_tests`) | `docs/testing/**`, `format/fixtures/**` | Traceable acceptance/test matrix and fixtures with source provenance; planned vs executed checks distinguished | Recovery and final probe artifacts verified; report saved |
-| Agent 2 — implementation (`recover_bootstrap`) | `tools/compatibility-smoke/**`, `docs/build/**` | Isolated compile probe for the requested full stack; exact command/result evidence | Final probe passed; no product implementation yet |
+## Implemented
 
-The current session permits three concurrent workers plus the supervisor. Roles will be sequenced as discovery tasks finish.
+- `:core:model`: owned source bytes/SHA-256, resource budgets, diagnostics, projections, minimal project identity.
+- `:format`: strict bounded UTF-8/JSON parsing, duplicate-name detection, unknown/null/number preservation, atomic revision-aware JSON Pointer patches, V2 schema checks and strict JSON export. Untouched valid V2 exports retain exact source bytes. V1/V3/unknown documents are inspectable, with unsupported exports blocked.
+- `:app`: real system-picker JSON intake, bounded streaming, background parsing, validation diagnostics, and compact/expanded inspection UI. App binding uses the Koin compiler plugin. Inspection is in memory; process death requires selecting the file again. Editing/export are engine APIs, not exposed app features yet.
+- Root Gradle wrapper, pinned version catalog and dependency locks; [private CI workflow](../.github/workflows/android.yml) with tests, fixture audit, APK build, and seven-day artifacts.
 
-## Current implementation assignments
+## Agent assignments and results
 
-| Owner | Owned paths | Task / acceptance | State |
-| --- | --- | --- | --- |
-| Supervisor | Root docs, Git/GitHub integration | Private repository, preserve decisions, integrate verified changes and status | In progress |
-| `product_bootstrap` | Root Gradle/catalog/wrapper, module build files, `app/**`, `.github/workflows/**`, product build report | Real debug APK, approved hybrid shell, bounded SAF JSON inspection, CI | In progress |
-| `foundation_format` | `core/model/src/main/**`, `format/src/main/**`, format report | Immutable source/raw model, bounded parsing, revisioned patches, strict V2 validation/export | In progress |
-| `foundation_test` | Model/format test sources, foundation test report | Independent preservation, malformed-input, patch and validation regression tests; app/CI review | In progress |
+| Owner | Scope | Result |
+| --- | --- | --- |
+| Supervisor | Repository/GitHub, decisions, integration and status | Private remote created, kickoff checkpoint pushed, source and final test evidence reviewed |
+| `product_bootstrap` | Root/module builds, `app/**`, CI | Debug APK, 5 app JVM tests and Android lint passed |
+| `foundation_format` | Model/format implementation | Initial bounded JSON/V2 foundation implemented; reviewed and frozen |
+| `foundation_test` | Independent regression tests and source/CI review | 59 pure JVM tests passed; preservation, malformed-input, patch and schema cases covered |
 
-Only `product_bootstrap` runs the shared Gradle build while these assignments are active. Source owners resolve compiler/test failures together. The first APK is an internal foundation build, not the full MVP.
-
-## Saved discovery artifacts
-
-- [Roadmap and task graph](planning/ROADMAP.md)
-- [Architecture and preservation contracts](planning/ARCHITECTURE.md)
-- [Exact dependency matrix and support limits](planning/TECH_STACK.md)
-- [Pinned upstream format references and coverage gaps](planning/FORMATS.md)
-- [Approved UI decision](DESIGN_DECISION.md), [comparison](design-comparison.html), and [proposal rationale](design/proposals.md)
-- [Test strategy](testing/TEST_STRATEGY.md), [fixture corpus](../format/fixtures/README.md), and [recovery verification](testing/RECOVERY_VERIFICATION.md)
-- [Compatibility probe and execution evidence](build/COMPATIBILITY_SMOKE.md)
-
-## Pending gates and decisions
-
-1. Requested AGP 9.4.1 / Gradle 9.8.1 / Kotlin 2.4.21 retained and locally tested with Compose/Material 3, Koin compiler DSL, Room 3/KSP, serialization and Coil Compose. Official Kotlin/Koin support-range caveats remain documented. This tested configuration can seed the non-UI foundation; broader runtime/production compatibility is unverified. Any later baseline change still requires approval.
-2. UI selection resolved: approved hybrid described above. [Comparison and previews](design-comparison.html) remain available as design references.
-3. Pin upstream sources and fixture coverage before deciding advertised character-card/PNG/World Info support; V1 scope remains open.
-4. Decide license, hosting/distribution, final public identity, and generation-history retention before the corresponding implementation/release work.
-
-## Environment observed
-
-- Android SDK is available at `~/Library/Android/sdk`.
-- Java, Gradle, Git, Python 3, Node, and curl are installed.
-- Gradle 9.8.1 appears in the local wrapper cache; this is not a complete compatibility check.
+Earlier agents completed discovery, three design proposals, pinned upstream research, fixture recovery audits, and the isolated toolchain probe. All agents save their artifacts locally; the power-failure recovery preserved the original charter.
 
 ## Verification
 
-The charter was read in full and the initially empty project state was inspected. After recovery:
+Final root command (31 October 2026):
 
-- `python3 format/fixtures/verify_manifest.py` passed: six pinned files and three helper objects. This is fixture integrity, not application format validation.
-- The tester independently fetched all three vendored upstream reference files from their pinned commit URLs; their bytes/hashes matched the local copies.
-- The comparison page opened in the available Twilight browser. All three local prototype frames rendered, and changing the comparison selector to Gemini request review updated all three previews. Text, image, and follow-up switches were visibly off in each.
-- The comparison page and all three prototypes passed JavaScript syntax (`node --check`), unique HTML ID, and local-link checks. Android accessibility and complete interaction testing remain pending.
-- Final isolated probe: `./gradlew :probe:assembleDebug :probe:testDebugUnitTest --no-daemon --console plain` from `tools/compatibility-smoke` passed with Coil Compose included; three tests, no failures/errors/skips. Initial dependency-download and compileSdk 36 attempts failed; the final build uses installed SDK 37.0 and Build Tools 37.0.0, required by selected artifacts. No requested toolchain versions were changed.
-- The tester checked final XML results, generated Room schema/DAO/database, compiled AAR contents, and locked compiler/library versions. See [independent smoke review](testing/SMOKE_REVIEW.md) and [build evidence](build/COMPATIBILITY_SMOKE.md) for warnings and exact scope.
-- No application feature, SillyTavern adapter, device, credential-storage, provider, or end-to-end interoperability test has passed. Those implementations/tests are still pending.
+```sh
+./gradlew :core:model:test :format:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --offline --no-daemon --console plain
+```
 
-## Next implementation handoff
+Passed: **64 tests, zero failures/errors/skips** (4 model, 55 format, 5 app). The supervisor independently read the final JUnit XML. Android lint reports no issues. The generated debug APK is `app/build/outputs/apk/debug/app-debug.apk`, package `com.valhalla.tavernforge`, version `0.1.0-internal`, min SDK 26, target SDK 37. The packaged launcher and signature were checked. Device installation/launch, UI rendering, SAF provider behavior, and accessibility remain unverified.
 
-The supervisor reviewed the [minimal architecture and preservation contracts](planning/ARCHITECTURE.md): start pure `:core:model` and `:format` modules, preserving source bytes, explicit null/missing/type distinctions, nested unknown values, and source/export version separation. Add Android data/app modules as the shared contracts become executable. Follow `MODEL-01`, `FORMAT-01`, and `FORMAT-02` in the roadmap, using the verified probe as build evidence rather than treating its demonstration entities as product models.
+Fixture integrity audit passes: six pinned files and three helper JSON objects. This audit is not adapter/interoperability testing. Full evidence: [product build](build/PRODUCT_BOOTSTRAP.md), [foundation tests](testing/FOUNDATION_VERIFICATION.md), [format implementation](build/FORMAT_FOUNDATION.md).
 
-M0 still requires the actual product build/module scaffold and CI. The first format milestone requires bounded parsing, patching, strict validation and attributable positive/negative fixtures. The approved design can guide UI work once those foundations support it.
+CI configuration exists; no remote CI pass is claimed until the pushed workflow finishes. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
+
+## Toolchain and constraints
+
+- Requested AGP 9.4.1, Gradle 9.8.1, Kotlin 2.4.21 remain unchanged. Product compile/target SDK 37.0 and Build Tools 37.0.0 satisfy dependency metadata; API 26 minimum is provisional for internal testing.
+- The tested JDK is 27; Java/Kotlin bytecode targets 17. Wrapper and dependency locks are included.
+- Kotlin/Koin vendor support-range caveats remain documented despite passing local builds. No version downgrade was inferred or approved.
+- Weak/unstable internet caused transient GitHub/Maven failures; cached dependencies and offline verification were used where possible.
+
+## Milestones and remaining work
+
+M0 has a locally verified product scaffold; remote CI evidence is pending. M1 has the initial V2 JSON model/parser/patch/validator/export foundation, with PNG, V3, standalone World Info, conversion review and real upstream interoperability still pending. M2 and later product milestones remain incomplete.
+
+Next implementation work: Room 3 persistence and managed sources, repository/domain integration, editing/export UI, full import/asset association, and the other planned formats. Gemini remains optional future work with independent permissions and Keystore-backed credentials; this internal APK has no key flow or network permission. Finish device tests before community readiness claims.
+
+Open decisions include public release timing, license/final public identity/distribution, final minimum SDK policy, V1 migration scope, and generation-history defaults. Hosting is resolved to the private GitHub repository above.
+
+## Reference documents
+
+[Roadmap](planning/ROADMAP.md) · [architecture](planning/ARCHITECTURE.md) · [dependency evidence](planning/TECH_STACK.md) · [upstream format pins](planning/FORMATS.md) · [test strategy](testing/TEST_STRATEGY.md) · [design comparison](design-comparison.html) · [fixture provenance](../format/fixtures/README.md) · [isolated smoke evidence](build/COMPATIBILITY_SMOKE.md).

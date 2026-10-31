@@ -8,7 +8,7 @@ The [kickoff charter](TavernForge_Project_Kickoff.html) is the source of truth f
 
 ## Current phase
 
-Internal foundation build. The Android app imports a JSON file through the system document picker and displays format inspection and validation results. The pure Kotlin engine provides bounded parsing, raw-data preservation, revision-aware patches, and strict V2 JSON validation/export. Editing and export are engine APIs at this stage; the app UI is an inspector.
+Internal foundation build: **64 JVM tests pass, Android lint is clean, and [CI passes](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764)**. The Android app imports a JSON file through the system document picker and displays format inspection and validation results. The pure Kotlin engine provides bounded parsing, raw-data preservation, revision-aware patches, and strict V2 JSON validation/export. Editing and export are engine APIs at this stage; the app UI is an inspector.
 
 The user has [approved a hybrid UI direction](docs/DESIGN_DECISION.md): C’s library, A’s native controls, and B’s expanded inspector. [Explore the design references](docs/design-comparison.html).
 

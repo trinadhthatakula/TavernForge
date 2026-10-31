@@ -58,8 +58,14 @@ Room 3, DataStore, Ktor, and Coil pins remain in the catalog for later milestone
 
 [Android internal build workflow](../../.github/workflows/android.yml) checks out the private repository with read-only contents permissions, sets up Java 27, installs SDK 37.0/Build Tools 37.0.0, audits fixtures, runs the same tests/lint, and builds the debug APK. Successful APKs and test reports have seven-day retention. There is no release/publication or visibility-change step.
 
-The workflow uses standard version-tagged official actions; remote CI execution is separate evidence and was not run by this assignment. Local success is not reported as hosted-CI success. The supervisor owns repository creation, commits, pushes, and monitoring that run.
+The workflow uses standard version-tagged actions. The supervisor subsequently created the private repository, pushed the changes and verified the hosted CI result recorded below. Hosted CI and local build evidence remain distinct.
 
 ## Next milestones
 
 The [format foundation report](FORMAT_FOUNDATION.md) describes actual parsing, patching, preservation and V2 validation boundaries. Product persistence, full editors/import/export, additional formats, image handling, Gemini and end-to-end device tests remain. Keep the repository private until the user decides to publish it.
+
+## Hosted CI result
+
+The [GitHub Actions run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764) for code/workflow commit `9da318c` passed in 5m37s. It installed the pinned Android SDK, audited fixtures, ran the JVM tests and lint, built the APK, and uploaded private internal APK/test-report artifacts with seven-day retention. Two initial setup failures were corrected by explicitly installing SDK command-line tools and excluding the obsolete `tools` package from the setup action defaults. No app or requested toolchain version changed for those fixes.
+
+The repository remains private. Runtime/image deprecation notices on the workflow were non-blocking. No device, UI interaction, or SillyTavern interoperability result is implied by this hosted build.

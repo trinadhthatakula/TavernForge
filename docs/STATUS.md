@@ -4,7 +4,7 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
-The first internal product build is implemented and locally verified: a launchable Android JSON inspector backed by pure Kotlin model and format modules. The final offline build passes all **64 JVM tests**. This is a foundation build, not the full MVP or a certification of SillyTavern interoperability.
+The first internal product build is implemented and locally verified: a launchable Android JSON inspector backed by pure Kotlin model and format modules. The final offline build passes all **64 JVM tests**, and the [GitHub Actions build](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764) also passes with private APK/test-report artifacts. This is a foundation build, not the full MVP or a certification of SillyTavern interoperability.
 
 [GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was created **private** under the user's explicit authorization. The kickoff and verified product changes are pushed to `main`. Keep the repository private during internal testing. Community publication is a later step.
 
@@ -21,7 +21,7 @@ The first internal product build is implemented and locally verified: a launchab
 
 | Owner | Scope | Result |
 | --- | --- | --- |
-| Supervisor | Repository/GitHub, decisions, integration and status | Private remote created, kickoff checkpoint pushed, source and final test evidence reviewed |
+| Supervisor | Repository/GitHub, decisions, integration and status | Private remote and product commits pushed; local evidence and successful hosted CI verified |
 | `product_bootstrap` | Root/module builds, `app/**`, CI | Debug APK, 5 app JVM tests and Android lint passed |
 | `foundation_format` | Model/format implementation | Initial bounded JSON/V2 foundation implemented; reviewed and frozen |
 | `foundation_test` | Independent regression tests and source/CI review | 59 pure JVM tests passed; preservation, malformed-input, patch and schema cases covered |
@@ -40,7 +40,7 @@ Passed: **64 tests, zero failures/errors/skips** (4 model, 55 format, 5 app). Th
 
 Fixture integrity audit passes: six pinned files and three helper JSON objects. This audit is not adapter/interoperability testing. Full evidence: [product build](build/PRODUCT_BOOTSTRAP.md), [foundation tests](testing/FOUNDATION_VERIFICATION.md), [format implementation](build/FORMAT_FOUNDATION.md).
 
-The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225026908) stopped before building because `sdkmanager` was not on the runner path. The next setup attempt requested the obsolete SDK `tools` package through the action's defaults. The workflow now explicitly sets up command-line tools and requests only `platform-tools` before installing pinned platform/build-tools packages. The corrected run remains pending; no remote CI pass is claimed. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
+The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225026908) stopped before building because `sdkmanager` was not on the runner path. The next setup attempt requested the obsolete SDK `tools` package through the action's defaults. The workflow now explicitly sets up command-line tools and requests only `platform-tools` before installing pinned platform/build-tools packages. The corrected [run 41225752764](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764) passed in 5m37s on code/workflow commit `9da318c`. Tests, lint, fixture audit, APK build and both artifact uploads succeeded. Artifacts are retained for seven days. Workflow runtime/image deprecation notices remain non-blocking and do not alter the tested toolchain. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
 
 ## Toolchain and constraints
 
@@ -51,7 +51,7 @@ The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/
 
 ## Milestones and remaining work
 
-M0 has a locally verified product scaffold; remote CI evidence is pending. M1 has the initial V2 JSON model/parser/patch/validator/export foundation, with PNG, V3, standalone World Info, conversion review and real upstream interoperability still pending. M2 and later product milestones remain incomplete.
+M0 bootstrap is complete for this internal build: private repository, pinned wrapper/catalog/locks, product modules, local verification and a successful hosted CI build. M1 has the initial V2 JSON model/parser/patch/validator/export foundation, with PNG, V3, standalone World Info, conversion review and real upstream interoperability still pending. M2 and later product milestones remain incomplete.
 
 Next implementation work: Room 3 persistence and managed sources, repository/domain integration, editing/export UI, full import/asset association, and the other planned formats. Gemini remains optional future work with independent permissions and Keystore-backed credentials; this internal APK has no key flow or network permission. Finish device tests before community readiness claims.
 

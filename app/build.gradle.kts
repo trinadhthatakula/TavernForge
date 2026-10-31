@@ -15,8 +15,8 @@ android {
         applicationId = "com.valhalla.tavernforge"
         minSdk = 26
         targetSdk = 37
-        versionCode = 2
-        versionName = "0.2.0-internal"
+        versionCode = 3
+        versionName = "0.3.0-internal"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -31,7 +31,10 @@ kotlin {
 koinCompiler { userLogs = true }
 
 dependencies {
+    implementation(project(":core:model"))
+    implementation(project(":data"))
     implementation(project(":format"))
+    implementation(libs.datastore.preferences)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
@@ -44,6 +47,7 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.serialization.json)
     testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }
 
 dependencyLocking { lockAllConfigurations() }

@@ -86,7 +86,7 @@
       "source_sha256": "3c472a16eeda5d018837e90d30fce2816b0982f07f4dba14c8fcc89aa11fe76c",
       "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
       "sha256": "982c4740655e0dfaafc3ce243c30159070f48f264358f967b74f4326d932a0aa",
-      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: MIT in upstream repository; specification linked, not copied.",
+      "license": "Original TavernForge synthetic test data; GPL-3.0-or-later. See ../../LICENSE. Source contract notice: MIT in upstream repository; specification linked, not copied.",
       "expected": "Strict V3 positive with only required fields; empty group_only_greetings valid."
     },
     {
@@ -98,7 +98,7 @@
       "source_sha256": "3c472a16eeda5d018837e90d30fce2816b0982f07f4dba14c8fcc89aa11fe76c",
       "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
       "sha256": "3c39b7d2825e74cc5e0c97d4bee00eaf77eccbc59e0281e8fa1ee40db92810a2",
-      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: MIT in upstream repository; specification linked, not copied.",
+      "license": "Original TavernForge synthetic test data; GPL-3.0-or-later. See ../../LICENSE. Source contract notice: MIT in upstream repository; specification linked, not copied.",
       "expected": "Strict V3 positive including optional metadata, assets, string-ID lorebook, decorators, and unknown-value preservation sentinels."
     },
     {
@@ -110,7 +110,7 @@
       "source_sha256": "3c472a16eeda5d018837e90d30fce2816b0982f07f4dba14c8fcc89aa11fe76c",
       "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
       "sha256": "2f437083aa5470f9093122eeeac49c574b1aecc336b33866ce991cf242a3672c",
-      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: MIT in upstream repository; specification linked, not copied.",
+      "license": "Original TavernForge synthetic test data; GPL-3.0-or-later. See ../../LICENSE. Source contract notice: MIT in upstream repository; specification linked, not copied.",
       "expected": "Strict lorebook_v3 standalone envelope positive; no spec_version is required."
     },
     {
@@ -122,7 +122,7 @@
       "source_sha256": "e39e1da4f7a912c965af373846f4ac5c6cfb6207ea3fd5d542060905631acb46",
       "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
       "sha256": "fcdb5070d644c7daf4d52afe2069958be025cfee6e477a2d795b683a5dbd65b7",
-      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: No repository license identified; specification linked, not copied.",
+      "license": "Original TavernForge synthetic test data; GPL-3.0-or-later. See ../../LICENSE. Source contract notice: No repository license identified; specification linked, not copied.",
       "expected": "Bare V2 CharacterBook with array entries; numeric IDs; strict positive without implicit World Info conversion."
     },
     {
@@ -134,7 +134,7 @@
       "source_sha256": "111c7f47945839e75b021e09bdbb112a54f0a9b7857d2b95435f573efc7cd9a5",
       "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
       "sha256": "51d221ef07bec39f7e7afc5ffdab83e67ed08cf231daae11ec0a55d64482c5c4",
-      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: AGPL-3.0; source linked, not copied.",
+      "license": "Original TavernForge synthetic test data; GPL-3.0-or-later. See ../../LICENSE. Source contract notice: AGPL-3.0; source linked, not copied.",
       "expected": "Native World Info with keyed entries, nullable overrides and pinned enum values; strict positive without default backfill."
     }
   ],

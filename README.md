@@ -34,4 +34,10 @@ Modules: `:core:model` owns immutable source and diagnostic types; `:format` own
 - Separate opt-in permissions for Gemini text, images, and follow-up calls.
 - Private credentials, request transparency, and explicit acceptance of generated drafts.
 
-The open-source license and distribution destination remain undecided.
+## License
+
+Copyright © 2026 Trinadh Thatakula.
+
+TavernForge is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version (**GPL-3.0-or-later**). See [LICENSE](LICENSE) for the full text, copied verbatim from the sibling Thor project.
+
+TavernForge is distributed without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose. Third-party reference material and dependencies retain their own licenses and notices; see [third-party notices](NOTICE.md). Distribution channels and community-release readiness remain open.

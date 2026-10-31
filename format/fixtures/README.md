@@ -19,7 +19,7 @@ Baseline: [TavernForge kickoff charter](../../TavernForge_Project_Kickoff.html).
 | `cases/spec-character-book-v2.json` | Independent synthetic data from pinned V2 contract | Bare array-entry CharacterBook, without implicit conversion to native World Info |
 | `cases/st-world-info-synthetic.json` | Independent synthetic data from pinned native field definitions | Object-keyed entries, nullable settings and enum coverage |
 
-The JSON cases are derived helper outputs, not captured user cards or independent interoperability proof. No user content, credentials, artwork or unreviewed binary assets are included. Third-party reference licensing does not select TavernForge's project license; keep these references/test derivatives separate from application source and assess distribution obligations when deciding the project license.
+The JSON cases are derived helper outputs, not captured user cards or independent interoperability proof. No user content, credentials, artwork or unreviewed binary assets are included. TavernForge's original work is GPL-3.0-or-later; these third-party references and derivatives retain their own notices. Keep them separate from application source and assess distribution obligations before a release; see [notices](../../NOTICE.md).
 
 ## Pinned definitions and important discrepancies
 

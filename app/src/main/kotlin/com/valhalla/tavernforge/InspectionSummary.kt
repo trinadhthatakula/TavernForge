@@ -17,6 +17,7 @@ data class InspectionSummary(
     val sha256: String,
     val issues: List<Diagnostic>,
     val status: InspectionStatus,
+    val canSaveDraft: Boolean,
 )
 
 /** Pure mapping keeps Android inspection on the same detected-format validator as strict export. */
@@ -39,6 +40,7 @@ internal fun inspectJson(engine: CharacterCardEngine, fileName: String, bytes: B
                     report.isValid -> InspectionStatus.VALID
                     else -> InspectionStatus.NEEDS_REVIEW
                 },
+                canSaveDraft = true,
             )
         }
         is ParseResult.Failure -> InspectionSummary(
@@ -51,6 +53,7 @@ internal fun inspectJson(engine: CharacterCardEngine, fileName: String, bytes: B
             sha256 = result.source?.sha256.orEmpty(),
             issues = result.issues,
             status = InspectionStatus.NEEDS_REVIEW,
+            canSaveDraft = false,
         )
     }
 

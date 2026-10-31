@@ -18,6 +18,8 @@ class MainActivity : ComponentActivity() {
                 InspectionViewModel(
                     GlobalContext.get().get<FormatServices>().engine,
                     DocumentReader(applicationContext.contentResolver),
+                    GlobalContext.get().get(),
+                    GlobalContext.get().get(),
                 )
             }
         }

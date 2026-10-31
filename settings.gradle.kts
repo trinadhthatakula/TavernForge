@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "TavernForge"
-include(":core:model", ":format", ":app")
+include(":core:model", ":format", ":data", ":app")

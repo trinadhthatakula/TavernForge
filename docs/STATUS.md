@@ -4,11 +4,11 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
-**In progress:** the [local JSON project library](planning/PROJECT_LIBRARY.md), the first M2 persistence increment. The user authorized proceeding after the JSON update. Separate owners are implementing Room 3/managed files, library UI/build integration, and independent persistence tests. The target internal version is 0.3.0; this work is not yet verified.
+**In progress:** the [local JSON project library](planning/PROJECT_LIBRARY.md), the first M2 persistence increment. The user authorized proceeding after the JSON update. Room 3/managed files, library UI and independent tests are implemented. The pre-dependency-update checkpoint passes 134 JVM tests, six actual Room tests on the physical device, and both Android lints. The target internal version is 0.3.0. Integration with the user-approved Dependabot updates and final CI/device UI verification are in progress.
 
 The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info. The inspector selects the detected format's validation rules and shows its version and lore-entry count. Engine edits and strict exports retain the source kind, unknown data, and number lexemes. The final offline build passes **102 JVM tests** and Android lint; the toolchain is unchanged. The user subsequently authorized public repository access and Dependabot. This is an internal JSON inspector, not the full MVP or a certification of SillyTavern interoperability.
 
-[GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was initially private. On 1 November the user explicitly authorized making it **public**, continuing GitHub Actions CI, and adding Dependabot. This supersedes the earlier visibility restriction; see [the decision and automation policy](planning/REPOSITORY_DECISION.md). Release readiness and project licensing remain separate decisions. The previously verified JSON changes are pushed to `main`; the library increment is in progress.
+[GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was initially private. On 1 November the user explicitly authorized making it **public**, continuing GitHub Actions CI, and adding Dependabot. This supersedes the earlier visibility restriction; see [the decision and automation policy](planning/REPOSITORY_DECISION.md). The user also selected **GPL-3.0-or-later**, copying the license text from sibling Thor; see [LICENSE](../LICENSE) and [notices](../NOTICE.md). Release readiness remains a separate decision. The previously verified JSON changes are pushed to `main`; the library increment is in progress.
 
 **Approved UI:** C's character-library identity, A's native controls/navigation, and B's optional inspector on expanded windows. See [the recorded decision](DESIGN_DECISION.md). No further design-selection approval is required for that direction.
 
@@ -51,6 +51,8 @@ The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/
 
 The [JSON update CI run 41229724561](https://github.com/trinadhthatakula/TavernForge/actions/runs/41229724561) passed on commit `5866cde`, including tests, fixture audit, lint, APK build and artifact uploads. The user then reported that the missing V3 group-greetings message was unclear; a diagnostic follow-up explains that the array is required but may be empty `[]`. Validation continues to preserve the input without inserting defaults. The follow-up offline run passed 81 format and 17 app tests (98 executed), clean lint and APK build; the four unchanged model tests passed in the preceding full run. The APK fingerprint above is the diagnostic follow-up artifact. [CI run 41230221340](https://github.com/trinadhthatakula/TavernForge/actions/runs/41230221340) also passed on pushed commit `0a79454`, completing hosted verification of the 0.2 update.
 
+The user subsequently requested all applicable free GitHub security features and GPL-3.0-or-later licensing. [Security configuration](planning/GITHUB_SECURITY.md) and [LICENSE](../LICENSE) record these decisions. The user also authorized merging the current Dependabot PRs, including changes to the original dependency baseline; final integrated versions and tests will be recorded after that review.
+
 ## Toolchain and constraints
 
 - Requested AGP 9.4.1, Gradle 9.8.1, Kotlin 2.4.21 remain unchanged. Product compile/target SDK 37.0 and Build Tools 37.0.0 satisfy dependency metadata; API 26 minimum is provisional for internal testing.
@@ -64,7 +66,7 @@ M0 bootstrap is complete for this internal build: repository, pinned wrapper/cat
 
 Next implementation work: Room 3 persistence and managed sources, repository/domain integration, editing/export UI, full import/asset association and the planned binary containers. Gemini remains optional future work with independent permissions and Keystore-backed credentials; this internal APK has no key flow or network permission. Finish device tests before community readiness claims.
 
-Open decisions include public release timing, license/final public identity/distribution, final minimum SDK policy, cross-version migration scope, and generation-history defaults. Hosting is resolved to the public GitHub repository above.
+Open decisions include public release timing, final public identity/distribution, final minimum SDK policy, cross-version migration scope, and generation-history defaults. Hosting is resolved to the public GitHub repository above.
 
 ## Reference documents
 

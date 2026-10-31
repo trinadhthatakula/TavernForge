@@ -14,13 +14,14 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,6 +32,9 @@ import androidx.compose.material3.adaptive.navigation3.SupportingPaneSceneStrate
 import androidx.compose.material3.adaptive.navigation3.rememberSupportingPaneSceneStrategy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
@@ -58,13 +62,17 @@ import kotlinx.serialization.Serializable
 fun TavernForgeApp(viewModel: InspectionViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Workshop)
+    var pendingReplacement by remember { mutableStateOf<(() -> Unit)?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             viewModel.inspect(uri)
             if (backStack.lastOrNull() != Inspector) backStack.add(Inspector)
         }
     }
-    val importFile = { launcher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }
+    fun protectDraft(action: () -> Unit) {
+        if (state.hasUnsavedDraft) pendingReplacement = action else action()
+    }
+    val importFile = { protectDraft { launcher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) } }
     val closeInspector = { if (backStack.size > 1) backStack.removeLastOrNull(); Unit }
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
@@ -77,69 +85,32 @@ fun TavernForgeApp(viewModel: InspectionViewModel) {
             sceneStrategies = listOf(rememberSupportingPaneSceneStrategy<NavKey>()),
             entryProvider = entryProvider {
                 entry<Workshop>(metadata = SupportingPaneSceneStrategy.mainPane()) {
-                    WorkshopScreen(state, importFile, onView = {
+                    LibraryScreen(state, importFile, onView = {
                         if (backStack.lastOrNull() != Inspector) backStack.add(Inspector)
-                    })
+                    }, onOpen = { id -> protectDraft {
+                        viewModel.openProject(id)
+                        if (backStack.lastOrNull() != Inspector) backStack.add(Inspector)
+                    } }, onQuery = viewModel::setQuery, onSort = viewModel::setSort, onRetry = viewModel::refreshLibrary)
                 }
                 entry<Inspector>(metadata = SupportingPaneSceneStrategy.supportingPane()) {
-                    InspectorScreen(state, importFile, closeInspector, onClear = {
-                        viewModel.clear()
-                        closeInspector()
-                    })
+                    InspectorScreen(state, importFile, closeInspector, onClear = { protectDraft {
+                        viewModel.clear(); closeInspector()
+                    } }, onSave = viewModel::saveDraft, onRename = viewModel::renameProject,
+                        onDuplicate = viewModel::duplicateProject, onDelete = viewModel::deleteProject)
                 }
             },
         )
     }
-}
-
-@Composable
-private fun WorkshopScreen(state: InspectionState, onImport: () -> Unit, onView: () -> Unit) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                BuildLabel()
-                Text(stringResource(R.string.home_title), style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier.semantics { heading() })
-                Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        item {
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(stringResource(if (state.summary == null) R.string.empty_title else R.string.inspect_title),
-                        style = MaterialTheme.typography.headlineMedium)
-                    if (state.summary != null) {
-                        Text(state.summary.documentName?.takeIf(String::isNotBlank)
-                            ?: state.summary.fileName, style = MaterialTheme.typography.titleLarge)
-                        Text(formatLabel(state.summary.sourceFormat), style = MaterialTheme.typography.bodyMedium)
-                        ValidationBadge(state.summary.status)
-                        OutlinedButton(onClick = onView) { Text(stringResource(R.string.view_results)) }
-                    } else {
-                        Text(stringResource(R.string.empty_body), style = MaterialTheme.typography.bodyLarge)
-                    }
-                    Button(onClick = onImport, enabled = !state.loading, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(if (state.summary == null) R.string.import_json else R.string.import_another))
-                    }
-                    if (state.loading) LoadingStatus()
-                    Text(stringResource(R.string.privacy_label), style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.scope_title), style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() })
-                Text(stringResource(R.string.scope_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                Text(stringResource(R.string.session_note), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+    if (pendingReplacement != null) {
+        AlertDialog(onDismissRequest = { pendingReplacement = null },
+            title = { Text(stringResource(R.string.discard_title)) },
+            text = { Text(stringResource(R.string.discard_body)) },
+            confirmButton = { TextButton(onClick = {
+                val action = pendingReplacement
+                pendingReplacement = null
+                action?.invoke()
+            }) { Text(stringResource(R.string.discard_continue)) } },
+            dismissButton = { TextButton(onClick = { pendingReplacement = null }) { Text(stringResource(R.string.keep_draft)) } })
     }
 }
 
@@ -149,7 +120,14 @@ private fun InspectorScreen(
     onImport: () -> Unit,
     onClose: () -> Unit,
     onClear: () -> Unit,
+    onSave: () -> Unit,
+    onRename: (String) -> Unit,
+    onDuplicate: () -> Unit,
+    onDelete: () -> Unit,
 ) {
+    var renameOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
+    var deleteOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
+    var title by remember(state.selectedProject?.id) { mutableStateOf("") }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item {
@@ -157,11 +135,10 @@ private fun InspectorScreen(
                 TextButton(onClick = onClose) { Text(stringResource(R.string.close_inspection)) }
                 Text(stringResource(R.string.inspect_title), style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.semantics { heading() })
+                LibraryFeedback(state)
             }
         }
-        if (state.loading) {
-            item { LoadingStatus() }
-        } else if (state.failure != null) {
+        if (!state.loading && state.failure != null) {
             item {
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -172,20 +149,45 @@ private fun InspectorScreen(
                             ImportFailure.PERMISSION -> R.string.failure_permission
                             ImportFailure.READ -> R.string.failure_read
                         }))
-                        Button(onClick = onImport) { Text(stringResource(R.string.import_another)) }
+                        Button(onClick = onImport, enabled = !state.busy) { Text(stringResource(R.string.import_another)) }
                     }
                 }
             }
-        } else if (state.summary != null) {
+        }
+        if (!state.loading && state.summary != null) {
             val summary = state.summary
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(summary.documentName?.takeIf(String::isNotBlank) ?: stringResource(R.string.unnamed_document),
+                    Text(state.selectedProject?.title ?: summary.documentName?.takeIf(String::isNotBlank)
+                        ?: stringResource(R.string.unnamed_document),
                         style = MaterialTheme.typography.titleLarge)
                     Text(summary.fileName, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     ValidationBadge(summary.status)
                     Text(stringResource(if (summary.status == InspectionStatus.UNSUPPORTED)
                         R.string.unsupported_note else R.string.schema_note), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (state.selectedProject == null) {
+                            Text(stringResource(if (summary.canSaveDraft) R.string.unsaved_note else R.string.cannot_save_malformed))
+                            if (summary.canSaveDraft && summary.status != InspectionStatus.VALID) {
+                                Text(stringResource(R.string.save_invalid_note))
+                            }
+                            Button(onClick = onSave, enabled = summary.canSaveDraft && !state.busy,
+                                modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.save_draft)) }
+                        } else {
+                            Text(stringResource(R.string.saved_note))
+                            OutlinedButton(onClick = { title = state.selectedProject.title; renameOpen = true },
+                                enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.rename_project)) }
+                            OutlinedButton(onClick = onDuplicate, enabled = !state.busy,
+                                modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.duplicate_project)) }
+                            TextButton(onClick = { deleteOpen = true }, enabled = !state.busy) {
+                                Text(stringResource(R.string.delete_project), color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    }
                 }
             }
             item {
@@ -213,23 +215,41 @@ private fun InspectorScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.preservation_note), style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.session_note), style = MaterialTheme.typography.bodySmall)
-                    OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(if (state.selectedProject == null) R.string.session_note else R.string.saved_note), style = MaterialTheme.typography.bodySmall)
+                    OutlinedButton(onClick = onImport, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.import_another))
                     }
-                    TextButton(onClick = onClear) { Text(stringResource(R.string.clear_file)) }
+                    TextButton(onClick = onClear, enabled = !state.busy) { Text(stringResource(R.string.clear_file)) }
                 }
             }
-        } else {
+        } else if (!state.loading && state.failure == null) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.no_selection), style = MaterialTheme.typography.titleLarge)
                     Text(stringResource(R.string.no_selection_body))
-                    Button(onClick = onImport) { Text(stringResource(R.string.import_json)) }
+                    Button(onClick = onImport, enabled = !state.busy) { Text(stringResource(R.string.import_json)) }
                 }
             }
         }
     }
+    if (renameOpen) AlertDialog(onDismissRequest = { renameOpen = false },
+        title = { Text(stringResource(R.string.rename_project)) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.rename_note))
+            OutlinedTextField(value = title, onValueChange = { title = it.take(256) },
+                label = { Text(stringResource(R.string.library_name)) }, singleLine = true)
+        } },
+        confirmButton = { TextButton(onClick = { renameOpen = false; onRename(title) }, enabled = title.isNotBlank() && !state.busy) {
+            Text(stringResource(R.string.rename_confirm))
+        } },
+        dismissButton = { TextButton(onClick = { renameOpen = false }) { Text(stringResource(R.string.cancel)) } })
+    if (deleteOpen) AlertDialog(onDismissRequest = { deleteOpen = false },
+        title = { Text(stringResource(R.string.delete_project)) },
+        text = { Text(stringResource(R.string.delete_body, state.selectedProject?.title.orEmpty())) },
+        confirmButton = { TextButton(onClick = { deleteOpen = false; onDelete() }, enabled = !state.busy) {
+            Text(stringResource(R.string.delete_confirm), color = MaterialTheme.colorScheme.error)
+        } },
+        dismissButton = { TextButton(onClick = { deleteOpen = false }) { Text(stringResource(R.string.cancel)) } })
 }
 
 @Composable
@@ -247,7 +267,7 @@ private fun DiagnosticCard(issue: Diagnostic) {
 }
 
 @Composable
-private fun ValidationBadge(status: InspectionStatus) {
+internal fun ValidationBadge(status: InspectionStatus) {
     val valid = status == InspectionStatus.VALID
     Surface(color = if (valid) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
         shape = MaterialTheme.shapes.small, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
@@ -261,7 +281,7 @@ private fun ValidationBadge(status: InspectionStatus) {
 }
 
 @Composable
-private fun formatLabel(format: SourceFormat): String = stringResource(when (format) {
+internal fun formatLabel(format: SourceFormat): String = stringResource(when (format) {
     SourceFormat.V1 -> R.string.format_character_v1
     SourceFormat.V2 -> R.string.format_character_v2
     SourceFormat.V3 -> R.string.format_character_v3

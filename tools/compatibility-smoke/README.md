@@ -2,13 +2,13 @@
 
 This isolated build probe belongs to the [kickoff charter](../../TavernForge_Project_Kickoff.html), section 07. It is not the application, an approved UI implementation, or evidence of format support.
 
-The probe retains the requested AGP 9.4.1, Gradle 9.8.1, and Kotlin 2.4.21 baseline. Its purpose is to exercise Android compilation, Compose, Material 3, the Koin Kotlin compiler plugin, and Room 3 processing together before application foundations are accepted.
+The probe uses the user-approved Dependabot upgrades: AGP 9.5.0, Gradle 9.8.2, Kotlin 2.4.21, and Material 3 1.5.0-beta02. Its purpose is to exercise Android compilation, Compose, Material 3, the Koin Kotlin compiler plugin, and Room 3 processing together before application foundations are accepted. See [current evidence](../../docs/build/COMPATIBILITY_SMOKE.md).
 
 See [build evidence](../../docs/build/COMPATIBILITY_SMOKE.md) for executed checks, warnings, and limits. No passing build is claimed until that report records one.
 
 ## Run
 
-Use an installed Android SDK with platform 37.0 and Build Tools 37.0.0, set `ANDROID_HOME` (or create an ignored `local.properties` pointing to it), and use a JDK compatible with Gradle 9.8.1. The recovered machine currently supplies JDK 27; Java/Kotlin bytecode targets 17. `minSdk = 26` is a probe setting, not the application's support policy.
+Use an installed Android SDK with platform 37.0 and Build Tools 37.0.0, set `ANDROID_HOME` (or create an ignored `local.properties` pointing to it), and use a JDK compatible with Gradle 9.8.2. The recovered machine currently supplies JDK 27; Java/Kotlin bytecode targets 17. `minSdk = 26` is a probe setting, not the application's support policy.
 
 From this directory:
 

@@ -1,0 +1,51 @@
+name: PR dependency graph
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-dependency-graph-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: Resolve PR dependencies (${{ matrix.id }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: product
+            directory: '.'
+          - id: probe
+            directory: tools/compatibility-smoke
+    env:
+      GITHUB_DEPENDENCY_GRAPH_JOB_CORRELATOR: tavernforge-${{ matrix.id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: temurin
+          java-version: '27'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install pinned Android SDK packages
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
+      - name: Generate and upload untrusted dependency snapshots
+        uses: gradle/actions/dependency-submission@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
+        with:
+          cache-disabled: true
+          build-root-directory: ${{ matrix.directory }}
+          additional-arguments: '--no-daemon --no-configuration-cache --console plain'
+          dependency-graph: generate-and-upload
+          artifact-retention-days: 2
+          validate-wrappers: true

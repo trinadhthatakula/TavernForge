@@ -1,5 +1,7 @@
 # Dependency matrix and compatibility gate
 
+**1 November update:** the user authorized Dependabot PRs #1–#6, now merged. Current pins are AGP **9.5.0**, Gradle **9.8.2**, Material 3 **1.5.0-beta02**, and resolved Compose **1.12.1**; Kotlin remains **2.4.21**. The upgraded product passes 134 JVM tests, both Android lints and six physical-device Room tests; the isolated probe passes three compiler checks. See [updated build evidence](../build/COMPATIBILITY_SMOKE.md) and [current status](../STATUS.md). The original discovery matrix below is retained as historical evidence; its alpha-only restriction was superseded by the explicit upgrade decision.
+
 Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), section 07. Official sources rechecked 31 October 2026 after interruption. **Published versions and the local compile/code-generation probe are verified.** The requested AGP/Gradle/Kotlin versions remain unchanged. The final Android library probe and three JVM checks passed; see [build evidence](../build/COMPATIBILITY_SMOKE.md) and [independent review](../testing/SMOKE_REVIEW.md). The support limits below remain applicable. The product debug APK and its JVM tests subsequently passed; see [product build evidence](../build/PRODUCT_BOOTSTRAP.md) for added UI pins. Device behavior remains unverified.
 
 ## Requested baseline and documented limits

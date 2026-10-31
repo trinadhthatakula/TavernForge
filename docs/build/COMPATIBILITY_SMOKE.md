@@ -4,6 +4,12 @@ Baseline: [TavernForge kickoff charter](../../TavernForge_Project_Kickoff.html),
 
 ## Result
 
+**1 November dependency integration:** the user authorized merging Dependabot PRs #1–#6. Both catalogs/wrappers now use AGP **9.5.0**, Gradle **9.8.2**, and Material 3 **1.5.0-beta02**; the unchanged BOM resolves Compose UI/foundation/runtime **1.12.1**. Kotlin remains **2.4.21**, Room **3.0.3**, KSP **2.3.13**, and Koin runtime/compiler **4.2.2/1.2.1**. From the project root, `./gradlew -p tools/compatibility-smoke :probe:testDebugUnitTest :probe:assembleDebug --offline --no-daemon --console plain` passed in 16 seconds, 33 tasks executed. The generated JUnit XML confirms **3 tests, zero failures/errors/skips**. The root product separately passed 134 JVM tests, both lints and six physical-device Room checks; see [current status](../STATUS.md).
+
+The new wrapper checksum matches the [official Gradle 9.8.2 checksum](https://services.gradle.org/distributions/gradle-9.8.2-bin.zip.sha256): `21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607`. [AGP 9.5](https://developer.android.com/build/releases/agp-9-5-0-release-notes) requires Gradle ≥9.6 and JDK ≥17, satisfied here. Vendor range caveats remain: [Kotlin's table](https://kotlinlang.org/docs/gradle-configure-project.html) lists Kotlin 2.4.21 through Gradle 9.7/AGP 9.3.1; [Gradle's tested matrix](https://docs.gradle.org/9.8.2/userguide/compatibility.html) lists Kotlin through 2.4.20-RC2 and AGP through 9.5.0-alpha02. Koin still warns that its newest verified adapter is Kotlin 2.4.20. Passing checks do not expand these vendor claims.
+
+The rest of this document preserves the original 31 October baseline evidence.
+
 **The isolated Android library probe builds and all three JVM checks pass with the requested AGP 9.4.1 / Gradle 9.8.1 / Kotlin 2.4.21 baseline unchanged.** Final source includes Compose Material 3 and Coil Compose `AsyncImage`, Room 3 code generation, and Koin compiler DSL transformation. This establishes a local smoke result; it does not extend the vendors' documented support ranges or complete milestone M0.
 
 Final command, from `tools/compatibility-smoke`:

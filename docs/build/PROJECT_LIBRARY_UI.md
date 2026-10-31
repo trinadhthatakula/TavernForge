@@ -2,6 +2,8 @@
 
 Baseline: [TavernForge kickoff charter](../../TavernForge_Project_Kickoff.html). Scope: [local JSON project library](../planning/PROJECT_LIBRARY.md). This is the 1 November 2026 implementation checkpoint before integration with the newly approved Dependabot updates.
 
+**Integrated update:** the final AGP 9.5.0 / Gradle 9.8.2 / Material 3 beta02 build again passes 134 JVM tests, clean app/data lint, and six real Room device tests. Version 0.3.0-internal is installed. A synthetic V3 JSON selected through Downloads was saved, then reopened from the library after force-stop/restart and deletion of the temporary Downloads source; its managed bytes retain the original SHA-256. See [current status](../STATUS.md) for exact artifact and device evidence. The checkpoint hash below is historical.
+
 The Android app now offers explicit saving of parsed imports, a local character/lorebook library, title/filename search, recent/title sorting, reopening, library-title renaming, duplication, and confirmed deletion. Sorting uses non-secret DataStore preferences. Unsaved replacement requires confirmation; saving a schema-invalid or unknown-format document retains it as a draft without changing its JSON. Malformed JSON cannot be saved in this increment. The original provider document is never modified or deleted.
 
 The approved library/native-controls/expanded-inspector direction is retained. Room and managed files are injected through the repository; the inspector still uses the shared format engine. The ViewModel retains original owned bytes privately until save, rejects repeated busy operations, and prevents stale import completions from replacing newer selections.

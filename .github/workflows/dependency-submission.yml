@@ -6,6 +6,9 @@ on:
   schedule:
     - cron: '43 1 * * 1'
   workflow_dispatch:
+  workflow_run:
+    workflows: ['PR dependency graph']
+    types: [completed]
 
 permissions:
   contents: read
@@ -13,7 +16,7 @@ permissions:
 jobs:
   submit:
     name: Submit dependency graph (${{ matrix.directory }})
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name != 'workflow_run' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -21,27 +24,59 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        directory: ['.', 'tools/compatibility-smoke']
+        include:
+          - id: product
+            directory: '.'
+          - id: probe
+            directory: tools/compatibility-smoke
+    env:
+      GITHUB_DEPENDENCY_GRAPH_JOB_CORRELATOR: tavernforge-${{ matrix.id }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Set up Java 27
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: temurin
           java-version: '27'
       - name: Set up Android SDK tools
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - name: Install pinned Android SDK packages
         run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
       - name: Submit resolved Gradle dependencies
-        uses: gradle/actions/dependency-submission@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        uses: gradle/actions/dependency-submission@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
         with:
+          cache-provider: basic
           build-root-directory: ${{ matrix.directory }}
           additional-arguments: '--no-daemon --no-configuration-cache --console plain'
           dependency-graph: generate-and-submit
           validate-wrappers: true
+
+  submit-pr:
+    name: Validate and submit PR dependency graphs
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: read
+      statuses: write
+    steps:
+      # workflow_run uses the default branch's workflow and SHA. Never check out
+      # or execute the PR's source in this job with write permissions.
+      - name: Load trusted snapshot validator
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRUSTED_SHA: ${{ github.sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/contents/.github/scripts/dependency_graph.py?ref=$TRUSTED_SHA" \
+            -H 'Accept: application/vnd.github.raw+json' > "$RUNNER_TEMP/dependency_graph.py"
+      - name: Validate and submit both snapshots
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 "$RUNNER_TEMP/dependency_graph.py" submit

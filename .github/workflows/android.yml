@@ -18,18 +18,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - name: Set up Java 27
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           distribution: temurin
           java-version: '27'
       - name: Set up Gradle cache
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6
       - name: Set up Android SDK tools
-        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
@@ -37,12 +37,14 @@ jobs:
         run: sdkmanager 'platforms;android-37.0' 'build-tools;37.0.0'
       - name: Verify fixture provenance
         run: python3 format/fixtures/verify_manifest.py
+      - name: Test dependency snapshot safeguards
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Test foundations and build internal APK
         run: ./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug :data:lintDebug :app:lintDebug --no-daemon --console plain
       - name: Verify isolated toolchain probe
         run: ./gradlew -p tools/compatibility-smoke :probe:testDebugUnitTest :probe:assembleDebug --no-daemon --console plain
       - name: Retain internal APK
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: TavernForge-internal-${{ github.sha }}
           path: app/build/outputs/apk/debug/app-debug.apk
@@ -50,7 +52,7 @@ jobs:
           retention-days: 7
       - name: Retain test reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: test-reports-${{ github.sha }}
           path: |

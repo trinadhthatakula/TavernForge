@@ -4,6 +4,25 @@ Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html). Sco
 
 ## Current state
 
+**Updated-stack verification, 1 November 2026:** after merging the user-approved Dependabot batch, the supervisor regenerated product dependency locks with AGP 9.5.0, Gradle 9.8.2 and Material 3 beta02 / Compose 1.12.1. The full product build executed 142 tasks and passed in 2m9s; a subsequent locked offline verification passed in 27s. JUnit XML again contains **134 tests, zero failures/errors/skips** (4 model, 81 format, 21 data, 28 app), and both Android lint XML files contain zero issues. The isolated upgraded probe separately passed its three tests in 16s. Fixture audit and `actionlint` also pass.
+
+Commands from the project root (SDK set through `ANDROID_HOME`):
+
+```sh
+./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug :data:assembleDebugAndroidTest :data:lintDebug :app:lintDebug --write-locks --no-daemon --console plain -Dorg.gradle.internal.http.connectionTimeout=15000 -Dorg.gradle.internal.http.socketTimeout=30000
+./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug :data:lintDebug :app:lintDebug --offline --no-daemon --console plain
+./gradlew -p tools/compatibility-smoke :probe:testDebugUnitTest :probe:assembleDebug --offline --no-daemon --console plain
+```
+
+The upgraded isolated test APK was installed with `adb install -r -t`, then the same explicit runner command below again reported all six completion codes 0, **`OK (6 tests)`**, time **0.912s**, `INSTRUMENTATION_CODE: -1`. Main app installation also returned `Success`; package code 3 / `0.3.0-internal`, APK v2 signature and absence of Internet/broad-storage permissions were rechecked. Cold launch reported `Status: ok`, 1072ms. App UI restart evidence is recorded separately in [current status](../STATUS.md).
+
+| Updated artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `app/build/outputs/apk/debug/app-debug.apk` | 14,690,582 | `cf06958da125e45be93a2b804c3d0fa2206c2373f0157d7131c998e65b238eb8` |
+| `data/build/outputs/apk/androidTest/debug/data-debug-androidTest.apk` | 2,878,813 | `616be1e31dfb80e6145355f199c0a917ad963922d987a74873f69285d8b5dc0e` |
+
+The earlier checkpoint evidence below remains for traceability; its APK hashes are superseded by the table above.
+
 **Pre-dependency-update checkpoint, 1 November 2026:** the tester independently inspected JUnit XML showing **134 JVM tests pass with zero failures, errors or skips**, including all 21 new persistence methods. Data and app lint reports each contain zero issues. The supervisor subsequently ran all **six Room instrumented tests successfully on the connected physical device**. These device checks establish the database/file operations and close/reopen cases below, not application process-death or full UI workflow coverage. Later dependency updates require a fresh integrated verification run; these results and fingerprints describe the checkpoint before those updates.
 
 ## Coverage and boundaries

@@ -8,24 +8,25 @@ The [kickoff charter](TavernForge_Project_Kickoff.html) is the source of truth f
 
 ## Current phase
 
-The internal Android app imports JSON through the system document picker and displays format-specific inspection and validation results. It supports character-card **V1, V2 and V3 JSON**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info JSON. The pure Kotlin engine provides bounded parsing, raw-data preservation, revision-aware patches, and strict same-format validation/export without converting versions. Editing and export are engine APIs at this stage; the app UI is an inspector. See the [support matrix](docs/build/JSON_FORMAT_SUPPORT.md) and [current verification results](docs/STATUS.md).
+The internal Android app imports JSON through the system document picker, displays format-specific validation, and saves original sources in an offline library. Saved projects can be searched, sorted, reopened, renamed, duplicated, and deleted. It supports character-card **V1, V2 and V3 JSON**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info JSON. The pure Kotlin engine provides bounded parsing, raw-data preservation, revision-aware patches, and strict same-format validation/export without converting versions. Editing and export remain engine APIs. See the [support matrix](docs/build/JSON_FORMAT_SUPPORT.md) and [current verification results](docs/STATUS.md).
 
 The user has [approved a hybrid UI direction](docs/DESIGN_DECISION.md): C’s library, A’s native controls, and B’s expanded inspector. [Explore the design references](docs/design-comparison.html).
 
-[GitHub repository](https://github.com/trinadhthatakula/TavernForge) is **public** under the user’s 1 November decision. [GitHub Actions](.github/workflows/android.yml) checks pull requests and main; [Dependabot](.github/dependabot.yml) proposes weekly dependency updates for review. Public repository access does not establish release readiness. Persistence, manual editing/export UI, PNG/APNG and CHARX containers, media handling, Gemini, and full device/interoperability validation remain pending. The internal build does not establish full SillyTavern compatibility.
+[GitHub repository](https://github.com/trinadhthatakula/TavernForge) is **public** under the user’s 1 November decision. [GitHub Actions](.github/workflows/android.yml) checks pull requests and main; [Dependabot](.github/dependabot.yml) proposes weekly dependency updates for review. See the [security configuration](docs/planning/GITHUB_SECURITY.md) for scanning and provenance workflows. Public repository access does not establish release readiness. Manual editing/export UI, PNG/APNG and CHARX containers, media handling, Gemini, and full device/interoperability validation remain pending. The internal build does not establish full SillyTavern compatibility.
 
 ## Build and check
 
-Use JDK 27 and Android SDK platform 37.0 with Build Tools 37.0.0 for the tested development configuration. The wrapper pins Gradle 9.8.1; the project retains AGP 9.4.1 and Kotlin 2.4.21. See [toolchain evidence](docs/build/COMPATIBILITY_SMOKE.md) for support-range caveats.
+Use JDK 27 and Android SDK platform 37.0 with Build Tools 37.0.0 for the development configuration. The user-approved Dependabot batch updates the wrapper to Gradle 9.8.2, AGP to 9.5.0, and Material 3 to 1.5.0-beta02; Kotlin remains 2.4.21. See [current status](docs/STATUS.md) and [toolchain evidence](docs/build/COMPATIBILITY_SMOKE.md) for verification and support-range caveats.
 
 ```sh
 python3 format/fixtures/verify_manifest.py
-./gradlew :core:model:test :format:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --no-daemon --console plain
+./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug :data:lintDebug :app:lintDebug --no-daemon --console plain
+./gradlew -p tools/compatibility-smoke :probe:testDebugUnitTest :probe:assembleDebug --no-daemon --console plain
 ```
 
 The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. Use `--offline` only after the required dependencies are cached. [GitHub Actions](.github/workflows/android.yml) runs foundation tests and builds an internal APK artifact. Artifacts follow the public repository’s access rules.
 
-Modules: `:core:model` owns immutable source and diagnostic types; `:format` owns the version-aware engine; `:app` contains the Android inspector. `tools/compatibility-smoke` remains a separate dependency probe.
+Modules: `:core:model` owns immutable source, diagnostic and project types; `:format` owns the version-aware engine; `:data` owns Room 3 metadata and managed source files; `:app` contains the Android library and inspector. `tools/compatibility-smoke` remains a separate dependency probe.
 
 ## Product principles
 

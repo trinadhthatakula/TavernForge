@@ -6,7 +6,7 @@ Baseline: [TavernForge kickoff charter](../../TavernForge_Project_Kickoff.html),
 
 After explicitly saving an imported character or lorebook JSON, the user can close the app, remove access to the original document, and reopen the same source from the local library. The library supports search, sorting, a local title, duplication, and confirmed deletion. A local title is metadata and never rewrites the character name or other JSON fields.
 
-This is the first M2 persistence increment, not completion of M2 or the full authoring workflow. Editing/export screens, asset association, PNG/CHARX, credentials, Gemini, sharing/backup, and full migration UI remain later work. No dependency baseline change or community release is authorized by this scope. The subsequent [repository visibility decision](REPOSITORY_DECISION.md) permits public source hosting.
+This is the first M2 persistence increment, not completion of M2 or the full authoring workflow. Editing/export screens, asset association, PNG/CHARX, credentials, Gemini, sharing/backup, and full migration UI remain later work. This scope alone does not authorize dependency changes or a community release. The user subsequently authorized merging Dependabot PRs #1–#6, updating AGP, Gradle, Material 3 and Actions; see [current status](../STATUS.md). The [repository visibility decision](REPOSITORY_DECISION.md) permits public source hosting.
 
 ## Data and safety contract
 

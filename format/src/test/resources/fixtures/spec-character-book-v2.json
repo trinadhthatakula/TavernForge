@@ -1,0 +1,14 @@
+{
+  "name": "Archive character book",
+  "description": "Synthetic bare V2 CharacterBook import.",
+  "extensions": {"future": {"raw": 1.2300e+09, "nullable": null}},
+  "entries": [{
+    "keys": ["archive"],
+    "content": "Archive content.",
+    "extensions": {"unrecognized": [null, false, 123456789012345678901234567890]},
+    "enabled": true,
+    "insertion_order": 1,
+    "id": 7
+  }],
+  "future_root": null
+}

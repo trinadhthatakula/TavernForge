@@ -28,13 +28,49 @@ class CharacterDocument private constructor(
     /** A deep snapshot: casting a returned map/list cannot mutate this document. */
     val raw: JsonObject get() = snapshot(tree) as JsonObject
 
+    val specVersion: String? get() = text(tree, "spec_version")
+
+    /** Recognition of a pinned target, independent of whether its fields are valid. */
+    val isSupportedFormat: Boolean get() = when (sourceFormat) {
+        SourceFormat.V2 -> specVersion == "2.0"
+        SourceFormat.V3 -> specVersion == "3.0"
+        SourceFormat.UNKNOWN -> false
+        else -> true
+    }
+
+    val displayName: String? get() = text(when (sourceFormat) {
+        SourceFormat.V2, SourceFormat.V3, SourceFormat.LOREBOOK_V3 -> tree["data"] as? JsonObject
+        else -> tree
+    }, "name")
+
+    val loreEntryCount: Int? get() {
+        val book = when (sourceFormat) {
+            SourceFormat.V2, SourceFormat.V3 -> (tree["data"] as? JsonObject)?.get("character_book") as? JsonObject
+            SourceFormat.LOREBOOK_V3 -> tree["data"] as? JsonObject
+            SourceFormat.LOREBOOK_V2, SourceFormat.WORLD_INFO -> tree
+            else -> null
+        }
+        return when (val entries = book?.get("entries")) {
+            is JsonArray -> entries.size
+            is JsonObject -> if (sourceFormat == SourceFormat.WORLD_INFO) entries.size else null
+            else -> null
+        }
+    }
+
     val fields: CharacterFields get() {
-        val data = if (sourceFormat == SourceFormat.V1) tree else tree["data"] as? JsonObject
+        val data = when (sourceFormat) {
+            SourceFormat.V1 -> tree
+            SourceFormat.V2, SourceFormat.V3 -> tree["data"] as? JsonObject
+            else -> null
+        }
         fun text(key: String): String? = (data?.get(key) as? JsonPrimitive)
             ?.takeIf { it.isString }?.content
         return CharacterFields(text("name"), text("description"), text("personality"),
             text("scenario"), text("first_mes"), text("mes_example"))
     }
+
+    private fun text(obj: JsonObject?, key: String): String? =
+        (obj?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content
 }
 
 sealed interface ParseResult {

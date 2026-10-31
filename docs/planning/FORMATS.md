@@ -1,6 +1,6 @@
 # Pinned format contracts and implementation scope
 
-Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), section 04. Sources retrieved at immutable revisions on 31 October 2026. This document proposes adapter scope; **no TavernForge format version is yet certified as supported**. See [fixture inventory](../../format/fixtures/README.md) and [recovery verification](../testing/RECOVERY_VERIFICATION.md).
+Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html), section 04. Sources retrieved at immutable revisions on 31 October 2026. This document records pinned contracts and planned container/interoperability work. JSON adapters are now implemented for character V1/V2/V3, bare V2 CharacterBook, standalone V3 lorebook, and native World Info; see the [JSON support matrix](../build/JSON_FORMAT_SUPPORT.md) and [JSON verification evidence](../testing/JSON_FORMAT_VERIFICATION.md). Full SillyTavern interoperability remains unverified. See [fixture inventory](../../format/fixtures/README.md) for provenance.
 
 ## Authoritative source pins
 
@@ -17,13 +17,13 @@ These are source/definition pins, not a claim about every current SillyTavern re
 
 ## Card adapters
 
-**V1:** flat mandatory string fields `name`, `description`, `personality`, `scenario`, `first_mes`, `mes_example`. Empty strings are valid defaults; absent or null is not the required structure. Propose import-only scope initially, retaining flat source and unknown keys. V1→V2 is an explicit conversion with a new envelope and required default values, never an implicit overwrite. The V1 document's historical “EXIF” wording does not override the actual PNG chunk implementation used by SillyTavern.
+**V1:** flat mandatory string fields `name`, `description`, `personality`, `scenario`, `first_mes`, `mes_example`. Empty strings are valid defaults; absent or null is not the required structure. The JSON adapter now supports validation, patching, and same-format strict export, retaining the flat source and unknown keys. V1→V2 is an explicit conversion with a new envelope and required default values, never an implicit overwrite. The V1 document's historical “EXIF” wording does not override the actual PNG chunk implementation used by SillyTavern.
 
 **V2:** strict target envelope `spec: "chara_card_v2"`, `spec_version: "2.0"`, object `data`. Inherited V1 fields move under `data`; also require `creator_notes`, `system_prompt`, `post_history_instructions`, `creator`, `character_version` as strings; `alternate_greetings` and `tags` as string arrays; `extensions` as an object. `character_book` is optional. Preserve arbitrary extension values and unknown fields at every level; validate before conversion or known-field editing.
 
 The embedded V2 CharacterBook has required `extensions` object and `entries` array. Entry required fields are `keys` string array, `content` string, `extensions` object, `enabled` boolean, and numeric `insertion_order`. Other fields are optional according to the pinned definition: book name/description/scan depth/token budget/recursive scanning; entry case sensitivity/name/priority/id/comment/selective/secondary keys/constant/position. Do not make all editor controls format-required. V2 native `position` is `'before_char' | 'after_char'`; richer SillyTavern positions require their documented extension mapping.
 
-**V3:** strict export target uses `spec: "chara_card_v3"`, `spec_version: "3.0"` and inherited fields, plus mandatory `group_only_greetings` string array. The pinned interface also defines optional assets, nickname, multilingual creator notes, source strings, creation/modification dates and the changed embedded lorebook model. V3 is not V2 with renamed envelope values. Asset field types, URI rules, main-icon relationships, lore entry rules and changed semantics require their own fixtures and tests before full support.
+**V3:** strict export target uses `spec: "chara_card_v3"`, `spec_version: "3.0"` and inherited fields, plus mandatory `group_only_greetings` string array. The pinned interface also defines optional assets, nickname, multilingual creator notes, source strings, creation/modification dates and the changed embedded lorebook model. V3 is not V2 with renamed envelope values. The JSON adapter validates asset metadata, URI shape, main-icon relationships, and V3 lore entry fields with specification-derived fixtures. Asset resolution/rendering and runtime semantics remain outside this JSON inspector.
 
 V3's specification recommends accepting future-version imports with appropriate handling of unknown features. Separate permissive inspection/source preservation from strict export to the known 3.0 target. Do not erase or silently downgrade a newer document. Unsupported media/asset behavior must be disclosed; retaining an opaque unknown payload is preferable to inventing a conversion.
 
@@ -49,7 +49,7 @@ The pinned `world_info_logic` maps `AND_ANY=0`, `NOT_ALL=1`, `NOT_ANY=2`, `AND_A
 
 ## Fixture plan and acceptance
 
-The current inventory contains three exact upstream references and three JSON helper objects. It lacks full strict-positive V3, real PNG cards and standalone World Info exports. Do not advertise those versions on the basis of the existing audit.
+The inventory now includes specification-derived positive V3 and standalone lorebook JSON plus synthetic native World Info, alongside the original upstream references and helper objects. Local tests exercise validation, edits, preservation, and same-format export. Real pinned-application exports, PNG cards, and application-level round trips remain pending; a fixture checksum audit alone is not interoperability evidence.
 
 1. Capture original synthetic V2/V3/World Info exports from the pinned application, recording source authorship, export steps, application revision, format target, checksum and licensing. Include empty-allowed and richly populated examples.
 2. For each adapter, create one-variable negative derivatives for missing/null/wrong types/enums, invalid encoding, duplicate keys/chunks, conflicting metadata, large payloads, depth and non-finite/coerced versions. Keep expected diagnostic phase/path/severity alongside derivation.

@@ -1,0 +1,18 @@
+{
+  "spec": "lorebook_v3",
+  "data": {
+    "name": "Archive lorebook",
+    "description": "Synthetic standalone CCv3 lorebook.",
+    "extensions": {"future": {"raw": 1.2300e+09, "nullable": null}},
+    "entries": [{
+      "keys": ["archive"],
+      "content": "@@x_unknown keep\n@@@activate\nArchive content.",
+      "extensions": {"unrecognized": [null, false, 123456789012345678901234567890]},
+      "enabled": true,
+      "insertion_order": 1,
+      "use_regex": false,
+      "id": "entry-alpha"
+    }]
+  },
+  "future_root": null
+}

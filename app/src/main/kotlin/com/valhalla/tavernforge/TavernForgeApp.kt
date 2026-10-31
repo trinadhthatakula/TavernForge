@@ -47,6 +47,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.valhalla.tavernforge.core.model.Diagnostic
 import com.valhalla.tavernforge.core.model.Severity
+import com.valhalla.tavernforge.core.model.SourceFormat
 import kotlinx.serialization.Serializable
 
 @Serializable private data object Workshop : NavKey
@@ -113,9 +114,10 @@ private fun WorkshopScreen(state: InspectionState, onImport: () -> Unit, onView:
                     Text(stringResource(if (state.summary == null) R.string.empty_title else R.string.inspect_title),
                         style = MaterialTheme.typography.headlineMedium)
                     if (state.summary != null) {
-                        Text(state.summary.characterName?.takeIf(String::isNotBlank)
+                        Text(state.summary.documentName?.takeIf(String::isNotBlank)
                             ?: state.summary.fileName, style = MaterialTheme.typography.titleLarge)
-                        ValidationBadge(state.summary.isValidV2)
+                        Text(formatLabel(state.summary.sourceFormat), style = MaterialTheme.typography.bodyMedium)
+                        ValidationBadge(state.summary.status)
                         OutlinedButton(onClick = onView) { Text(stringResource(R.string.view_results)) }
                     } else {
                         Text(stringResource(R.string.empty_body), style = MaterialTheme.typography.bodyLarge)
@@ -178,17 +180,22 @@ private fun InspectorScreen(
             val summary = state.summary
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(summary.characterName?.takeIf(String::isNotBlank) ?: stringResource(R.string.unnamed_character),
+                    Text(summary.documentName?.takeIf(String::isNotBlank) ?: stringResource(R.string.unnamed_document),
                         style = MaterialTheme.typography.titleLarge)
                     Text(summary.fileName, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    ValidationBadge(summary.isValidV2)
-                    Text(stringResource(R.string.schema_note), style = MaterialTheme.typography.bodySmall)
+                    ValidationBadge(summary.status)
+                    Text(stringResource(if (summary.status == InspectionStatus.UNSUPPORTED)
+                        R.string.unsupported_note else R.string.schema_note), style = MaterialTheme.typography.bodySmall)
                 }
             }
             item {
                 Card {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Fact(stringResource(R.string.source_format), summary.sourceFormat.name)
+                        Fact(stringResource(R.string.source_format), formatLabel(summary.sourceFormat))
+                        summary.specVersion?.let { Fact(stringResource(R.string.spec_version), it) }
+                        summary.loreEntryCount?.let {
+                            Fact(stringResource(R.string.lore_entries), pluralStringResource(R.plurals.entry_count, it, it))
+                        }
                         Fact(stringResource(R.string.source_size), pluralStringResource(R.plurals.byte_size, summary.sizeBytes, summary.sizeBytes))
                         if (summary.sha256.isNotEmpty()) Fact(stringResource(R.string.source_hash), summary.sha256)
                     }
@@ -240,13 +247,29 @@ private fun DiagnosticCard(issue: Diagnostic) {
 }
 
 @Composable
-private fun ValidationBadge(valid: Boolean) {
+private fun ValidationBadge(status: InspectionStatus) {
+    val valid = status == InspectionStatus.VALID
     Surface(color = if (valid) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
         shape = MaterialTheme.shapes.small, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-        Text(stringResource(if (valid) R.string.valid_v2 else R.string.needs_review),
+        Text(stringResource(when (status) {
+            InspectionStatus.VALID -> R.string.structure_passes
+            InspectionStatus.NEEDS_REVIEW -> R.string.needs_review
+            InspectionStatus.UNSUPPORTED -> R.string.unsupported_format
+        }),
             Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelLarge)
     }
 }
+
+@Composable
+private fun formatLabel(format: SourceFormat): String = stringResource(when (format) {
+    SourceFormat.V1 -> R.string.format_character_v1
+    SourceFormat.V2 -> R.string.format_character_v2
+    SourceFormat.V3 -> R.string.format_character_v3
+    SourceFormat.LOREBOOK_V2 -> R.string.format_lorebook_v2
+    SourceFormat.LOREBOOK_V3 -> R.string.format_lorebook_v3
+    SourceFormat.WORLD_INFO -> R.string.format_world_info
+    SourceFormat.UNKNOWN -> R.string.format_unknown
+})
 
 @Composable
 private fun Fact(label: String, value: String) {

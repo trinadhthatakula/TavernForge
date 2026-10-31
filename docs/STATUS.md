@@ -4,7 +4,7 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
-The first internal product build is implemented and locally verified: a launchable Android JSON inspector backed by pure Kotlin model and format modules. The final offline build passes all **64 JVM tests**, and the [GitHub Actions build](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764) also passes with private APK/test-report artifacts. This is a foundation build, not the full MVP or a certification of SillyTavern interoperability.
+The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info. The inspector selects the detected format's validation rules and shows its version and lore-entry count. Engine edits and strict exports retain the source kind, unknown data, and number lexemes. The final offline build passes **102 JVM tests** and Android lint; the repository remains private and the toolchain is unchanged. This is an internal JSON inspector, not the full MVP or a certification of SillyTavern interoperability.
 
 [GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was created **private** under the user's explicit authorization. The kickoff and verified product changes are pushed to `main`. Keep the repository private during internal testing. Community publication is a later step.
 
@@ -13,7 +13,7 @@ The first internal product build is implemented and locally verified: a launchab
 ## Implemented
 
 - `:core:model`: owned source bytes/SHA-256, resource budgets, diagnostics, projections, minimal project identity.
-- `:format`: strict bounded UTF-8/JSON parsing, duplicate-name detection, unknown/null/number preservation, atomic revision-aware JSON Pointer patches, V2 schema checks and strict JSON export. Untouched valid V2 exports retain exact source bytes. V1/V3/unknown documents are inspectable, with unsupported exports blocked.
+- `:format`: strict bounded UTF-8/JSON parsing, duplicate-name detection, unknown/null/number preservation, atomic revision-aware JSON Pointer patches, version-dispatched schema checks and strict same-format JSON export for the six supported JSON kinds. Untouched valid exports retain exact source bytes. Unknown/future versions remain inspectable with strict exports blocked. See the [support matrix](build/JSON_FORMAT_SUPPORT.md).
 - `:app`: real system-picker JSON intake, bounded streaming, background parsing, validation diagnostics, and compact/expanded inspection UI. App binding uses the Koin compiler plugin. Inspection is in memory; process death requires selecting the file again. Editing/export are engine APIs, not exposed app features yet.
 - Root Gradle wrapper, pinned version catalog and dependency locks; [private CI workflow](../.github/workflows/android.yml) with tests, fixture audit, APK build, and seven-day artifacts.
 
@@ -21,7 +21,10 @@ The first internal product build is implemented and locally verified: a launchab
 
 | Owner | Scope | Result |
 | --- | --- | --- |
-| Supervisor | Repository/GitHub, decisions, integration and status | Private remote and product commits pushed; local evidence and successful hosted CI verified |
+| Supervisor | Repository/GitHub, decisions, integration and status | Private remote maintained; reviewing JSON update, deployment and hosted CI |
+| `json_versions_engine` | Model/format production sources | Six JSON kinds, format-dispatched validation/export and source-kind guards implemented |
+| `json_versions_tests` | Independent contract tests and fixtures | Five synthetic positives with pinned provenance; exact round-trip, edit, negative and numeric-boundary regressions |
+| `json_versions_ui` | Android inspector and sole Gradle build owner | Format-aware UI, 0.2.0-internal build and app dispatch tests implemented |
 | `product_bootstrap` | Root/module builds, `app/**`, CI | Debug APK, 5 app JVM tests and Android lint passed |
 | `foundation_format` | Model/format implementation | Initial bounded JSON/V2 foundation implemented; reviewed and frozen |
 | `foundation_test` | Independent regression tests and source/CI review | 59 pure JVM tests passed; preservation, malformed-input, patch and schema cases covered |
@@ -30,15 +33,17 @@ Earlier agents completed discovery, three design proposals, pinned upstream rese
 
 ## Verification
 
-Final root command (31 October 2026):
+Final JSON update command (31 October 2026):
 
 ```sh
 ./gradlew :core:model:test :format:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --offline --no-daemon --console plain
 ```
 
-Passed: **64 tests, zero failures/errors/skips** (4 model, 55 format, 5 app). The supervisor independently read the final JUnit XML. Android lint reports no issues. The generated debug APK is `app/build/outputs/apk/debug/app-debug.apk`, package `com.valhalla.tavernforge`, version `0.1.0-internal`, min SDK 26, target SDK 37. The packaged launcher and signature were checked. Device installation/launch, UI rendering, SAF provider behavior, and accessibility remain unverified.
+Passed: **102 tests, zero failures/errors/skips** (4 model, 81 format, 17 app). The supervisor independently read final JUnit and lint XML; lint reports zero issues. The generated debug APK is `app/build/outputs/apk/debug/app-debug.apk`, package `com.valhalla.tavernforge`, version **0.2.0-internal**, code 2, min SDK 26, target SDK 37. APK size: 13,520,958 bytes; SHA-256: `2ffaa0ebb4410bb0ef93b19acf69368aaa8bb6ba993f27b59932ab7d621a2df3`. The packaged launcher and signature were checked. The exact APK was installed with `adb -s 1da5425f install -r`; the device package manager confirms code 2 / 0.2.0-internal. Cold launch with `am start -W` succeeded on model 25053PC47G, API 36. The home UI hierarchy displays the new JSON scope. SAF import smoke verification is pending because the device locked during interaction.
 
-Fixture integrity audit passes: six pinned files and three helper JSON objects. This audit is not adapter/interoperability testing. Full evidence: [product build](build/PRODUCT_BOOTSTRAP.md), [foundation tests](testing/FOUNDATION_VERIFICATION.md), [format implementation](build/FORMAT_FOUNDATION.md).
+The previous 0.1.0-internal build passed 64 JVM tests and was installed successfully on the connected API 36 device. Installation alone did not establish SAF or rendering behavior.
+
+Fixture integrity audit passes: eleven pinned files, three helper JSON objects and eight byte-identical JVM resource copies. This audit is not adapter/interoperability testing. Current evidence: [JSON format verification](testing/JSON_FORMAT_VERIFICATION.md), [JSON support matrix](build/JSON_FORMAT_SUPPORT.md). Earlier foundation evidence: [product build](build/PRODUCT_BOOTSTRAP.md), [foundation tests](testing/FOUNDATION_VERIFICATION.md), [format implementation](build/FORMAT_FOUNDATION.md).
 
 The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225026908) stopped before building because `sdkmanager` was not on the runner path. The next setup attempt requested the obsolete SDK `tools` package through the action's defaults. The workflow now explicitly sets up command-line tools and requests only `platform-tools` before installing pinned platform/build-tools packages. The corrected [run 41225752764](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764) passed in 5m37s on code/workflow commit `9da318c`. Tests, lint, fixture audit, APK build and both artifact uploads succeeded. Artifacts are retained for seven days. Workflow runtime/image deprecation notices remain non-blocking and do not alter the tested toolchain. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in the 64 product tests.
 
@@ -51,11 +56,11 @@ The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/
 
 ## Milestones and remaining work
 
-M0 bootstrap is complete for this internal build: private repository, pinned wrapper/catalog/locks, product modules, local verification and a successful hosted CI build. M1 has the initial V2 JSON model/parser/patch/validator/export foundation, with PNG, V3, standalone World Info, conversion review and real upstream interoperability still pending. M2 and later product milestones remain incomplete.
+M0 bootstrap is complete for this internal build: private repository, pinned wrapper/catalog/locks, product modules, local verification and a successful hosted CI build. M1 has the JSON model/parser/patch/validator/export foundation for character V1/V2/V3, V2/V3 lorebooks and native World Info. PNG/APNG, media, conversion review and real upstream interoperability still remain pending. M2 and later product milestones remain incomplete.
 
-Next implementation work: Room 3 persistence and managed sources, repository/domain integration, editing/export UI, full import/asset association, and the other planned formats. Gemini remains optional future work with independent permissions and Keystore-backed credentials; this internal APK has no key flow or network permission. Finish device tests before community readiness claims.
+Next implementation work: Room 3 persistence and managed sources, repository/domain integration, editing/export UI, full import/asset association and the planned binary containers. Gemini remains optional future work with independent permissions and Keystore-backed credentials; this internal APK has no key flow or network permission. Finish device tests before community readiness claims.
 
-Open decisions include public release timing, license/final public identity/distribution, final minimum SDK policy, V1 migration scope, and generation-history defaults. Hosting is resolved to the private GitHub repository above.
+Open decisions include public release timing, license/final public identity/distribution, final minimum SDK policy, cross-version migration scope, and generation-history defaults. Hosting is resolved to the private GitHub repository above.
 
 ## Reference documents
 

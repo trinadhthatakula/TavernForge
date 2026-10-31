@@ -8,11 +8,11 @@ The [kickoff charter](TavernForge_Project_Kickoff.html) is the source of truth f
 
 ## Current phase
 
-Internal foundation build: **64 JVM tests pass, Android lint is clean, and [CI passes](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764)**. The Android app imports a JSON file through the system document picker and displays format inspection and validation results. The pure Kotlin engine provides bounded parsing, raw-data preservation, revision-aware patches, and strict V2 JSON validation/export. Editing and export are engine APIs at this stage; the app UI is an inspector.
+The internal Android app imports JSON through the system document picker and displays format-specific inspection and validation results. It supports character-card **V1, V2 and V3 JSON**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info JSON. The pure Kotlin engine provides bounded parsing, raw-data preservation, revision-aware patches, and strict same-format validation/export without converting versions. Editing and export are engine APIs at this stage; the app UI is an inspector. See the [support matrix](docs/build/JSON_FORMAT_SUPPORT.md) and [current verification results](docs/STATUS.md).
 
 The user has [approved a hybrid UI direction](docs/DESIGN_DECISION.md): C’s library, A’s native controls, and B’s expanded inspector. [Explore the design references](docs/design-comparison.html).
 
-[GitHub repository](https://github.com/trinadhthatakula/TavernForge) is **private** during internal testing. Community publication is a later decision. Persistence, manual editing UI, PNG/World Info support, Gemini, and device/interoperability validation remain pending. The internal build does not establish full SillyTavern compatibility.
+[GitHub repository](https://github.com/trinadhthatakula/TavernForge) is **private** during internal testing. Community publication is a later decision. Persistence, manual editing/export UI, PNG/APNG and CHARX containers, media handling, Gemini, and full device/interoperability validation remain pending. The internal build does not establish full SillyTavern compatibility.
 
 ## Build and check
 

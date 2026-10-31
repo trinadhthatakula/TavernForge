@@ -11,7 +11,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-/** Bounded JSON intake and explicit V2 validation/export; no implicit format conversion. */
+/** Bounded JSON intake and validation/export in the imported format; no implicit conversion. */
 class CharacterCardEngine(val limits: JsonLimits = JsonLimits()) {
     private val json = BoundedJson(limits)
 
@@ -29,9 +29,22 @@ class CharacterCardEngine(val limits: JsonLimits = JsonLimits()) {
 
     fun validateV2(document: CharacterDocument): ValidationReport = V2Validator.validate(document)
 
+    fun validate(document: CharacterDocument): ValidationReport = JsonFormatValidator.validate(document)
+
     fun exportV2(document: CharacterDocument): ExportResult {
         val report = validateV2(document)
         if (!report.isValid) return ExportResult.Failure(report.issues)
+        return serialize(document)
+    }
+
+    /** Strict export retains the detected source kind and version. */
+    fun export(document: CharacterDocument): ExportResult {
+        val report = validate(document)
+        if (!report.isValid) return ExportResult.Failure(report.issues)
+        return serialize(document)
+    }
+
+    private fun serialize(document: CharacterDocument): ExportResult {
         return try {
             // Recheck this engine's limits even if a different engine created the document.
             if (document.untouched) {
@@ -72,6 +85,10 @@ class CharacterCardEngine(val limits: JsonLimits = JsonLimits()) {
             if (tree["spec"] != document.tree["spec"] || tree["spec_version"] != document.tree["spec_version"]) {
                 return patchFailure("CONVERSION_REQUIRED", "Changing a format discriminator requires a reviewed conversion, which is not implemented.")
             }
+            val detected = detect(tree)
+            if (detected != document.sourceFormat && detected != SourceFormat.UNKNOWN) {
+                return patchFailure("CONVERSION_REQUIRED", "Changing the JSON document kind requires a reviewed conversion, which is not implemented.")
+            }
             PatchResult.Success(document.withTree(tree))
         } catch (failure: JsonFailure) {
             PatchResult.Failure(listOf(failure.diagnostic.copy(phase = ValidationPhase.PATCH)))
@@ -96,8 +113,15 @@ class CharacterCardEngine(val limits: JsonLimits = JsonLimits()) {
     private fun detect(tree: JsonObject): SourceFormat = when ((tree["spec"] as? JsonPrimitive)?.takeIf { it.isString }?.content) {
         "chara_card_v2" -> SourceFormat.V2
         "chara_card_v3" -> SourceFormat.V3
-        null -> if (!tree.containsKey("spec") && listOf("name", "description", "personality", "scenario", "first_mes", "mes_example")
-            .all { tree.containsKey(it) }) SourceFormat.V1 else SourceFormat.UNKNOWN
+        "lorebook_v3" -> SourceFormat.LOREBOOK_V3
+        null -> when {
+            tree.containsKey("spec") || tree.containsKey("spec_version") -> SourceFormat.UNKNOWN
+            listOf("name", "description", "personality", "scenario", "first_mes", "mes_example")
+                .all { tree.containsKey(it) } -> SourceFormat.V1
+            tree["entries"] is JsonArray -> SourceFormat.LOREBOOK_V2
+            tree["entries"] is JsonObject -> SourceFormat.WORLD_INFO
+            else -> SourceFormat.UNKNOWN
+        }
         else -> SourceFormat.UNKNOWN
     }
 

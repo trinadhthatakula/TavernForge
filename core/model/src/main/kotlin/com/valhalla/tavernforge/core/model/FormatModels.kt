@@ -30,7 +30,7 @@ data class JsonLimits(
     }
 }
 
-enum class SourceFormat { V1, V2, V3, UNKNOWN }
+enum class SourceFormat { V1, V2, V3, LOREBOOK_V2, LOREBOOK_V3, WORLD_INFO, UNKNOWN }
 enum class Severity { ERROR, WARNING, INFO }
 enum class ValidationPhase { PARSE, SCHEMA, SEMANTIC, COMPATIBILITY, PATCH }
 

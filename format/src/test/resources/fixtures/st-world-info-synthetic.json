@@ -1,0 +1,33 @@
+{
+  "name": "Archive World Info",
+  "entries": {
+    "7": {
+      "uid": 7,
+      "key": ["archive"],
+      "keysecondary": ["keeper"],
+      "content": "Synthetic World Info content.",
+      "comment": "Generated fixture from the pinned field contract, not an actual export.",
+      "constant": false,
+      "vectorized": false,
+      "selective": true,
+      "selectiveLogic": 3,
+      "order": 100,
+      "position": 7,
+      "outletName": "archive",
+      "disable": false,
+      "probability": 100,
+      "useProbability": true,
+      "scanDepth": null,
+      "caseSensitive": null,
+      "matchWholeWords": null,
+      "useGroupScoring": null,
+      "sticky": null,
+      "cooldown": null,
+      "delay": null,
+      "characterFilter": {"isExclude": false, "names": ["Archive Keeper"], "tags": [], "future": null},
+      "future": {"raw": 1.2300e+09, "nullable": null, "large": 123456789012345678901234567890}
+    }
+  },
+  "extensions": {"unrecognized": [null, false]},
+  "future_root": null
+}

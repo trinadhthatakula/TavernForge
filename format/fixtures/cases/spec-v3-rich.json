@@ -1,0 +1,51 @@
+{
+  "spec": "chara_card_v3",
+  "spec_version": "3.0",
+  "data": {
+    "name": "Archive Keeper",
+    "description": "A synthetic character for preservation tests.",
+    "personality": "Patient",
+    "scenario": "An offline archive",
+    "first_mes": "Welcome, {{user}}.",
+    "mes_example": "<START>\n{{char}}: The archive is open.",
+    "creator_notes": "Synthetic test content; not an upstream character export.",
+    "system_prompt": "",
+    "post_history_instructions": "",
+    "alternate_greetings": ["Hello."],
+    "tags": ["fixture", "日本語"],
+    "creator": "TavernForge test suite",
+    "character_version": "fixture-1",
+    "extensions": {"test/raw": {"negative_zero": -0, "precision": 123456789012345678901234567890, "exponent": 1.2300e+09, "null": null, "flag": false}},
+    "group_only_greetings": ["Welcome, everyone."],
+    "assets": [
+      {"type": "icon", "uri": "ccdefault:", "name": "main", "ext": "png", "future": null},
+      {"type": "icon", "uri": "embeded://assets/icon/images/alternate.png", "name": "alternate", "ext": "png"},
+      {"type": "background", "uri": "https://example.invalid/library.webp", "name": "library", "ext": "webp"},
+      {"type": "x_custom", "uri": "data:application/octet-stream;base64,AA==", "name": "opaque", "ext": "unknown"}
+    ],
+    "nickname": "Keeper",
+    "creator_notes_multilingual": {"en": "Test notes", "ja": "テスト"},
+    "source": ["fixture:archive-keeper", "https://example.invalid/card"],
+    "creation_date": 0,
+    "modification_date": 1793404800.125,
+    "character_book": {
+      "name": "Archive",
+      "extensions": {"future": null},
+      "entries": [{
+        "keys": ["archive"],
+        "content": "@@x_unknown keep\n@@@activate\nArchive content.",
+        "extensions": {"future": [null, 2.500]},
+        "enabled": true,
+        "insertion_order": 0.5,
+        "use_regex": false,
+        "id": "entry-alpha",
+        "secondary_keys": ["keeper"],
+        "selective": true,
+        "position": "before_char",
+        "constant": false
+      }]
+    },
+    "future_data": {"kept": null}
+  },
+  "future_root": [false, null, 1e-8]
+}

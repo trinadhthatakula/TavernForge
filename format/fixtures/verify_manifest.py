@@ -14,14 +14,27 @@ def audit():
     revision = manifest["upstream"]["revision"]
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("Upstream revision is not an immutable SHA")
+    revisions = {revision}
+    contracts = {}
+    for source in manifest.get("contract_sources", []):
+        source_revision = source["revision"]
+        if not re.fullmatch(r"[0-9a-f]{40}", source_revision) or not re.fullmatch(r"[0-9a-f]{64}", source["sha256"]):
+            raise ValueError("Contract source lacks immutable revision/hash")
+        revisions.add(source_revision)
+        contracts[f"{source['repository']}/blob/{source_revision}/{source['path']}"] = source
     seen = set()
     for entry in manifest["entries"]:
         path = (root / entry["path"]).resolve()
         if not path.is_relative_to(root) or entry["path"] in seen:
             raise ValueError("Unsafe or duplicate manifest path")
         seen.add(entry["path"])
-        if entry["source_revision"] != revision or revision not in entry["source_url"]:
+        source_revision = entry["source_revision"]
+        if source_revision not in revisions or source_revision not in entry["source_url"]:
             raise ValueError(f"Unpinned source: {entry['path']}")
+        if entry["kind"] == "synthetic-contract-fixture":
+            source = contracts.get(entry["source_url"])
+            if source is None or entry["source_sha256"] != source["sha256"] or not entry.get("derivation"):
+                raise ValueError(f"Unattributed synthetic contract case: {entry['path']}")
         if not entry.get("license") or not entry.get("expected"):
             raise ValueError(f"Missing provenance: {entry['path']}")
         data = path.read_bytes()
@@ -29,6 +42,9 @@ def audit():
             raise ValueError(f"Checksum mismatch: {entry['path']}")
         if path.suffix == ".json":
             json.loads(data)
+            resource = root.parent / "src/test/resources/fixtures" / path.name
+            if not resource.is_file() or resource.read_bytes() != data:
+                raise ValueError(f"Missing or changed JVM fixture copy: {path.name}")
 
     source = (root / "upstream/sillytavern/tests/tavern-card-validator.test.js").read_text()
 
@@ -56,7 +72,7 @@ def audit():
         if actual != value:
             raise ValueError(f"Materialized helper mismatch: {name}")
     print(f"PASS: {len(seen)} pinned files; {len(expected)} helper objects; checksums and JSON verified.")
-    print("Application/adapter/PNG/Android/interoperability tests: NOT RUN (discovery audit only).")
+    print("This audit does not execute adapter/PNG/Android/interoperability tests; see the verification reports for those results.")
 
 
 if __name__ == "__main__":

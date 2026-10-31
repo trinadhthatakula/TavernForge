@@ -1,7 +1,7 @@
 {
   "manifest_version": 1,
   "observed_on": "2026-10-31",
-  "status": "Discovery fixtures only. No TavernForge adapter or Android tests have run.",
+  "status": "Attributed reference/helper fixtures and independent synthetic contract fixtures. Adapter verification is recorded in docs/testing/JSON_FORMAT_VERIFICATION.md; this manifest alone is not interoperability evidence.",
   "upstream": {
     "repository": "https://github.com/SillyTavern/SillyTavern",
     "revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
@@ -51,7 +51,7 @@
       "derivation": "JSON representation of the object returned by the named helper; empty strings, arrays, and object values preserved; no generated character content",
       "sha256": "8320c78ee3901df1dfb8066908e0a979c8fab6762863e46e1703649e3817cc2b",
       "license": "Derived from AGPL-3.0 upstream test; see upstream/sillytavern/LICENSE",
-      "expected": "upstream detection V1; strict V1 import candidate, not yet tested"
+      "expected": "V1 detection, strict validation, exact no-op export; see JSON_FORMAT_VERIFICATION.md for execution evidence."
     },
     {
       "id": "st-v2-empty-fields",
@@ -63,7 +63,7 @@
       "derivation": "JSON representation of the object returned by the named helper; empty strings, arrays, and object values preserved; no generated character content",
       "sha256": "56b3e3ae45ccbe265ae1b0f3e95c686c1d844753dc6b28800bcf1a85ce4ddc0f",
       "license": "Derived from AGPL-3.0 upstream test; see upstream/sillytavern/LICENSE",
-      "expected": "upstream detection V2; strict V2 candidate, not yet tested"
+      "expected": "V2 detection, strict validation, exact no-op export; see FOUNDATION_VERIFICATION.md and JSON_FORMAT_VERIFICATION.md for execution evidence."
     },
     {
       "id": "st-v3-envelope-only",
@@ -76,6 +76,89 @@
       "sha256": "a5bd503aa110b433a113982fb5a0a8ea7ab5fa0ef6877ecf0d6644b76aa318f5",
       "license": "Derived from AGPL-3.0 upstream test; see upstream/sillytavern/LICENSE",
       "expected": "upstream detection V3; negative strict V3 case because required content is absent"
+    },
+    {
+      "id": "spec-v3-minimal",
+      "path": "cases/spec-v3-minimal.json",
+      "kind": "synthetic-contract-fixture",
+      "source_url": "https://github.com/kwaroran/character-card-spec-v3/blob/f3a86af019fbd99f788f7a1155f399655b34ab35/SPEC_V3.md",
+      "source_revision": "f3a86af019fbd99f788f7a1155f399655b34ab35",
+      "source_sha256": "3c472a16eeda5d018837e90d30fce2816b0982f07f4dba14c8fcc89aa11fe76c",
+      "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
+      "sha256": "982c4740655e0dfaafc3ce243c30159070f48f264358f967b74f4326d932a0aa",
+      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: MIT in upstream repository; specification linked, not copied.",
+      "expected": "Strict V3 positive with only required fields; empty group_only_greetings valid."
+    },
+    {
+      "id": "spec-v3-rich",
+      "path": "cases/spec-v3-rich.json",
+      "kind": "synthetic-contract-fixture",
+      "source_url": "https://github.com/kwaroran/character-card-spec-v3/blob/f3a86af019fbd99f788f7a1155f399655b34ab35/SPEC_V3.md",
+      "source_revision": "f3a86af019fbd99f788f7a1155f399655b34ab35",
+      "source_sha256": "3c472a16eeda5d018837e90d30fce2816b0982f07f4dba14c8fcc89aa11fe76c",
+      "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
+      "sha256": "3c39b7d2825e74cc5e0c97d4bee00eaf77eccbc59e0281e8fa1ee40db92810a2",
+      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: MIT in upstream repository; specification linked, not copied.",
+      "expected": "Strict V3 positive including optional metadata, assets, string-ID lorebook, decorators, and unknown-value preservation sentinels."
+    },
+    {
+      "id": "spec-lorebook-v3",
+      "path": "cases/spec-lorebook-v3.json",
+      "kind": "synthetic-contract-fixture",
+      "source_url": "https://github.com/kwaroran/character-card-spec-v3/blob/f3a86af019fbd99f788f7a1155f399655b34ab35/SPEC_V3.md",
+      "source_revision": "f3a86af019fbd99f788f7a1155f399655b34ab35",
+      "source_sha256": "3c472a16eeda5d018837e90d30fce2816b0982f07f4dba14c8fcc89aa11fe76c",
+      "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
+      "sha256": "2f437083aa5470f9093122eeeac49c574b1aecc336b33866ce991cf242a3672c",
+      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: MIT in upstream repository; specification linked, not copied.",
+      "expected": "Strict lorebook_v3 standalone envelope positive; no spec_version is required."
+    },
+    {
+      "id": "spec-character-book-v2",
+      "path": "cases/spec-character-book-v2.json",
+      "kind": "synthetic-contract-fixture",
+      "source_url": "https://github.com/malfoyslastname/character-card-spec-v2/blob/8083fb388615ccbce768e97cbbd49d2b3214632c/spec_v2.md",
+      "source_revision": "8083fb388615ccbce768e97cbbd49d2b3214632c",
+      "source_sha256": "e39e1da4f7a912c965af373846f4ac5c6cfb6207ea3fd5d542060905631acb46",
+      "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
+      "sha256": "fcdb5070d644c7daf4d52afe2069958be025cfee6e477a2d795b683a5dbd65b7",
+      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: No repository license identified; specification linked, not copied.",
+      "expected": "Bare V2 CharacterBook with array entries; numeric IDs; strict positive without implicit World Info conversion."
+    },
+    {
+      "id": "st-world-info-synthetic",
+      "path": "cases/st-world-info-synthetic.json",
+      "kind": "synthetic-contract-fixture",
+      "source_url": "https://github.com/SillyTavern/SillyTavern/blob/06bde939fb1e9c4c8d8641d810f0a916b5bce127/public/scripts/world-info.js",
+      "source_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "source_sha256": "111c7f47945839e75b021e09bdbb112a54f0a9b7857d2b95435f573efc7cd9a5",
+      "derivation": "Independently authored test content and preservation sentinels from the pinned contract. Not captured from an upstream application, not a copy of upstream specification prose, and not interoperability evidence.",
+      "sha256": "51d221ef07bec39f7e7afc5ffdab83e67ed08cf231daae11ec0a55d64482c5c4",
+      "license": "Original TavernForge synthetic test data; project license decision pending. Source contract notice: AGPL-3.0; source linked, not copied.",
+      "expected": "Native World Info with keyed entries, nullable overrides and pinned enum values; strict positive without default backfill."
+    }
+  ],
+  "contract_sources": [
+    {
+      "repository": "https://github.com/malfoyslastname/character-card-spec-v2",
+      "revision": "8083fb388615ccbce768e97cbbd49d2b3214632c",
+      "path": "spec_v2.md",
+      "sha256": "e39e1da4f7a912c965af373846f4ac5c6cfb6207ea3fd5d542060905631acb46",
+      "license": "No repository license identified; specification linked, not copied."
+    },
+    {
+      "repository": "https://github.com/kwaroran/character-card-spec-v3",
+      "revision": "f3a86af019fbd99f788f7a1155f399655b34ab35",
+      "path": "SPEC_V3.md",
+      "sha256": "3c472a16eeda5d018837e90d30fce2816b0982f07f4dba14c8fcc89aa11fe76c",
+      "license": "MIT in upstream repository; specification linked, not copied."
+    },
+    {
+      "repository": "https://github.com/SillyTavern/SillyTavern",
+      "revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "path": "public/scripts/world-info.js",
+      "sha256": "111c7f47945839e75b021e09bdbb112a54f0a9b7857d2b95435f573efc7cd9a5",
+      "license": "AGPL-3.0; source linked, not copied."
     }
   ]
 }

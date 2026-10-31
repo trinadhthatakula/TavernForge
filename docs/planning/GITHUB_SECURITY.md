@@ -17,7 +17,7 @@ The default Actions token is read-only and cannot approve PRs. External-contribu
 - [Dependabot](../../.github/dependabot.yml): weekly Gradle and Actions PRs. All workflow actions use reviewed full commit SHAs. After integration commit `b4053db` reached main, repository Actions SHA-only enforcement was enabled and verified through the API (`sha_pinning_required: true`).
 - [Security policy](../../SECURITY.md): private reporting route, development support expectations, and synthetic reproduction guidance.
 
-Workflow configuration is not proof of a successful scan. Record the first successful analysis, dependency submission and artifact attestation runs in current status before claiming operational coverage.
+The first main-branch build/attestation, all three CodeQL analyses, and both dependency submissions passed on `b4053db`. PR #7 also passed snapshot generation, trusted submission, dependency review, Android CI and CodeQL before merge. The downloaded main-branch APK's signed provenance was independently verified with `gh attestation verify`. See [current status](../STATUS.md) for exact run links and artifact fingerprints. Actual external-fork execution remains unverified; the tested PR came from this repository.
 
 ## Free-only boundaries
 

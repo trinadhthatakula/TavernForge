@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>TavernForge — Project Kickoff & Engineering Charter</title>
+<style>
+:root{
+  --bg:#0d1018;--panel:#151b28;--panel2:#1b2434;--text:#edf1f8;--muted:#a8b3c6;
+  --line:#2c374a;--accent:#b69cff;--accent2:#79d7c4;--warn:#f4c879;--link:#a9c8ff;
+  --shadow:0 14px 40px rgba(0,0,0,.22);--radius:16px;--max:1160px
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:86px}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:var(--link);text-decoration:none}a:hover{text-decoration:underline}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+code{background:#222c3d;padding:.13rem .38rem;border-radius:6px;color:#d8cbff;overflow-wrap:anywhere}
+.wrap{max-width:var(--max);margin:auto;padding:0 24px}
+header.hero{padding:64px 0 38px;background:radial-gradient(ellipse at 15% 0%,rgba(182,156,255,.19),transparent 46%),radial-gradient(ellipse at 90% 20%,rgba(121,215,196,.12),transparent 38%)}
+.kicker{color:var(--accent2);font-size:.78rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase}
+h1{font-size:clamp(2.6rem,7vw,5.2rem);line-height:1.02;letter-spacing:-.055em;margin:.4rem 0 1rem}
+h1 span{color:var(--accent)}
+.subtitle{font-size:1.15rem;color:var(--muted);max-width:760px}
+.meta{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}
+.pill{border:1px solid var(--line);background:rgba(21,27,40,.8);border-radius:999px;padding:6px 12px;color:var(--muted);font-size:.82rem}
+.pill strong{color:var(--text)}
+.hero-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;align-items:stretch;margin-top:30px}
+.hero-card,.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.hero-card{padding:22px}
+.hero-card h2{margin:.1rem 0 .5rem;font-size:1.1rem}
+.hero-card p{margin:.25rem 0;color:var(--muted)}
+.brandmark{display:flex;align-items:center;gap:14px}
+.logo{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(135deg,#42366a,#1d625c);font-size:27px}
+nav{position:sticky;top:0;z-index:10;background:rgba(13,16,24,.92);backdrop-filter:blur(16px);border-block:1px solid var(--line)}
+.navinner{max-width:var(--max);margin:auto;padding:10px 24px;display:flex;gap:8px;overflow:auto}
+nav a{white-space:nowrap;color:var(--muted);font-size:.82rem;padding:7px 10px;border-radius:8px}
+nav a:hover{background:var(--panel2);color:var(--text);text-decoration:none}
+main{padding:32px 0 80px}
+section{margin:0 0 28px}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:0 0 14px}
+h2{font-size:1.65rem;letter-spacing:-.025em;margin:0}
+h3{font-size:1.08rem;margin:0 0 8px}
+h4{font-size:.94rem;margin:0 0 6px}
+p{margin:.55rem 0}
+.lead{font-size:1.03rem;color:var(--muted);max-width:900px}
+.card{padding:22px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid .card{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+.callout{border-left:3px solid var(--accent);background:var(--panel2);padding:13px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+.callout.warn{border-color:var(--warn)}
+.callout.good{border-color:var(--accent2)}
+.workflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.workflow .card{position:relative;padding-top:18px}
+.number{width:32px;height:32px;border-radius:10px;background:var(--panel2);display:grid;place-items:center;color:var(--accent);font-weight:800;margin-bottom:12px}
+.flowline{color:var(--accent2);font-weight:800;font-size:.82rem;letter-spacing:.04em;margin:10px 0}
+ul,ol{padding-left:1.25rem}
+li{margin:.32rem 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.91rem}
+th,td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em}
+tr:last-child td{border-bottom:0}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0a0e15;border:1px solid var(--line);padding:16px;border-radius:12px;color:#d7e0ef;font-size:.84rem;line-height:1.55}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:7px;padding:2px 7px;font-size:.72rem;color:var(--muted);margin:2px}
+.status{display:inline-block;font-size:.72rem;font-weight:800;border-radius:999px;padding:3px 9px;background:#263b37;color:#9ee6d5}
+.status.warn{background:#403522;color:#f4d08d}
+details{border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin:9px 0;background:var(--panel)}
+summary{cursor:pointer;font-weight:700}
+.checklist label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line)}
+.checklist label:last-child{border:0}
+input[type=checkbox]{accent-color:var(--accent);margin-top:5px}
+footer{border-top:1px solid var(--line);padding:28px 0 50px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 13px;border-radius:9px;cursor:pointer;font:inherit}
+.btn:hover{border-color:var(--accent)}
+.top{position:fixed;right:20px;bottom:20px;border-radius:50%;width:44px;height:44px;box-shadow:var(--shadow)}
+@media(max-width:800px){.hero-grid,.grid,.grid.three,.workflow{grid-template-columns:1fr}.wrap{padding:0 16px}.navinner{padding-inline:12px}.card{padding:17px}.section-head{align-items:flex-start;flex-direction:column}}
+@media print{body{background:white;color:#111}.hero{background:white!important}.hero-card,.card,nav,.btn{box-shadow:none;background:white;color:#111;border-color:#bbb}nav{display:none}.muted,.subtitle,.hero-card p{color:#444}code{color:#222;background:#eee}a{color:#222}section{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="kicker">Valhalla · FOSS Android project · Main project document</div>
+    <div class="brandmark" style="margin-top:18px">
+      <div class="logo" aria-hidden="true">⚒</div>
+      <div>
+        <h1 style="margin:0">Tavern<span>Forge</span></h1>
+        <div class="muted">Create characters. Build worlds. Export for SillyTavern.</div>
+      </div>
+    </div>
+    <p class="subtitle">Project kickoff, product requirements, architecture, format compatibility rules, AI usage policy, agent orchestration, roadmap and release acceptance criteria — consolidated into one source of truth.</p>
+    <div class="meta">
+      <span class="pill"><strong>Package</strong> · com.valhalla.tavernforge</span>
+      <span class="pill"><strong>Platform</strong> · Android</span>
+      <span class="pill"><strong>Model</strong> · Offline-first / BYOK</span>
+      <span class="pill"><strong>Status</strong> · Kickoff baseline</span>
+    </div>
+    <div class="hero-grid">
+      <div class="hero-card">
+        <h2>Product mission</h2>
+        <p>TavernForge is a FOSS Android companion for assembling, authoring, validating, organizing and exporting SillyTavern character cards and World Info/lorebooks. It supports imported assets, manual creation and Gemini-assisted creation without requiring an account or backend.</p>
+      </div>
+      <div class="hero-card">
+        <h2>Non-negotiable principles</h2>
+        <p>Format fidelity · strict validation · no hardcoded credentials · explicit AI consent · transparent API usage · local ownership · lossless preservation of unknown fields.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav><div class="navinner">
+<a href="#overview">Overview</a><a href="#workflows">3 Workflows</a><a href="#requirements">Requirements</a><a href="#formats">Format Engine</a><a href="#ai">Gemini & Usage</a><a href="#architecture">Architecture</a><a href="#stack">Tech Stack</a><a href="#agents">Agents</a><a href="#roadmap">Roadmap</a><a href="#acceptance">Acceptance</a><a href="#deliverables">9 Deliverables</a><a href="#risks">Risks</a>
+</div></nav>
+
+<main class="wrap">
+<section id="overview">
+  <div class="section-head"><h2>01 · Product overview</h2><span class="status">Project identity proposed</span></div>
+  <div class="card">
+    <table>
+      <tr><th>Property</th><th>Decision</th></tr>
+      <tr><td>App name</td><td><strong>TavernForge</strong></td></tr>
+      <tr><td>Package name</td><td><code>com.valhalla.tavernforge</code></td></tr>
+      <tr><td>Publisher namespace</td><td><code>com.valhalla</code></td></tr>
+      <tr><td>Category</td><td>FOSS · Character authoring · SillyTavern companion</td></tr>
+      <tr><td>Primary output</td><td>SillyTavern-compatible character cards, PNG cards and lorebooks</td></tr>
+      <tr><td>Account/backend</td><td>Not required; no mandatory account or hosted backend</td></tr>
+      <tr><td>AI model</td><td>User-provided Google AI Studio API key (BYOK)</td></tr>
+    </table>
+    <p class="muted small">The product name is a working project decision for this kickoff. Before public release, check name, package, repository and trademark availability.</p>
+  </div>
+  <p class="lead">The app must serve users who already have assets, users who want AI to create the structured files, and users who prefer to author everything themselves. These are three first-class workflows, not variations hidden inside one confusing wizard.</p>
+</section>
+
+<section id="workflows">
+  <div class="section-head"><h2>02 · Three primary workflows</h2></div>
+  <div class="workflow">
+    <article class="card">
+      <div class="number">01</div><h3>Combine existing files</h3>
+      <span class="tag">Import-first</span><span class="tag">No AI required</span>
+      <p class="muted">For users who already have character JSON, lorebook JSON and/or character artwork.</p>
+      <div class="flowline">SELECT → INSPECT → ASSOCIATE → VALIDATE → EXPORT</div>
+      <ul>
+        <li>Import character card JSON.</li>
+        <li>Import standalone lorebook JSON.</li>
+        <li>Import PNG and inspect embedded SillyTavern metadata.</li>
+        <li>Associate the lorebook and artwork with the character.</li>
+        <li>Resolve validation errors or review warnings.</li>
+        <li>Export supported JSON and/or PNG output.</li>
+      </ul>
+      <div class="callout good small">Partial inputs are valid: a user may start with only JSON, only a PNG card, or a character plus a separate lorebook. The app must clearly show what is missing and what can be exported.</div>
+    </article>
+    <article class="card">
+      <div class="number">02</div><h3>Generate with Gemini</h3>
+      <span class="tag">AI-assisted</span><span class="tag">BYOK</span>
+      <p class="muted">For users who provide a Gemini API key and want models to create the required structured content from a concept.</p>
+      <div class="flowline">CONFIGURE → CONCEPT → GENERATE → VALIDATE → REVIEW → EXPORT</div>
+      <ul>
+        <li>Add and verify the user's own API key.</li>
+        <li>Select an available, compatible Gemini model.</li>
+        <li>Describe the character, setting and intended tone.</li>
+        <li>Generate character card JSON and lorebook JSON.</li>
+        <li>Optionally request image generation if explicitly enabled and supported by the selected model.</li>
+        <li>Validate, review and accept generated content before saving.</li>
+      </ul>
+      <div class="callout warn small">Text generation and image generation are separate permissions. Image generation must be disabled by default and must never be inferred from permission to generate text.</div>
+    </article>
+    <article class="card">
+      <div class="number">03</div><h3>Build manually</h3>
+      <span class="tag">Form-first</span><span class="tag">No API key</span>
+      <p class="muted">For users who want complete control or do not want to use AI.</p>
+      <div class="flowline">CHOOSE TEMPLATE → FILL DETAILS → AUTHOR LORE → VALIDATE → EXPORT</div>
+      <ul>
+        <li>Guided character form with required and optional fields.</li>
+        <li>Basic and advanced authoring modes.</li>
+        <li>Manual lorebook and entry creation.</li>
+        <li>Optional artwork attachment.</li>
+        <li>Live validation and completeness indicators.</li>
+        <li>Export without any network access.</li>
+      </ul>
+      <div class="callout good small">The form must explain fields and distinguish specification-required fields from recommended authoring fields. Do not label optional creative fields as format-required.</div>
+    </article>
+  </div>
+  <div class="card">
+    <h3>Shared project model</h3>
+    <p>All three workflows must converge on one canonical internal project representation. Do not build three independent storage or export systems. Import, AI generation and manual forms should all produce/update the same domain model, then pass through the same SillyTavern format engine and validation pipeline.</p>
+    <pre>Import workflow ───────┐
+Gemini workflow ──────┼──> Canonical Project Model
+Manual workflow ──────┘             │
+                                    ▼
+                         SillyTavern Format Engine
+                                    │
+                           Strict Validation
+                                    │
+                         Preview / Fix / Approve
+                                    │
+                              Exporters</pre>
+  </div>
+</section>
+
+<section id="requirements">
+  <div class="section-head"><h2>03 · Functional requirements</h2></div>
+  <div class="grid">
+    <div class="card">
+      <h3>Character card authoring</h3>
+      <ul>
+        <li>Name, creator, character version, tags and creator notes.</li>
+        <li>Description, personality, scenario and relevant prompt fields.</li>
+        <li>First message, alternate greetings and example dialogue.</li>
+        <li>Speech style, vocabulary, mannerisms and communication guidance.</li>
+        <li>Appearance, clothing/attire and visual description as authoring fields.</li>
+        <li>Advanced specification fields, extensions and metadata.</li>
+        <li>Basic mode and advanced mode.</li>
+      </ul>
+      <p class="muted small">The UI may offer convenient authoring fields that are not standard top-level fields in every card version. The format adapter must map them only where the target format supports them, or preserve them as explicitly documented app metadata without pretending they are native fields.</p>
+    </div>
+    <div class="card">
+      <h3>Lorebook / World Info editor</h3>
+      <ul>
+        <li>Create, import, edit, duplicate, reorder and delete entries.</li>
+        <li>Primary keys, secondary keys and selective logic.</li>
+        <li>Constant activation, case sensitivity and matching options.</li>
+        <li>Insertion order, position, depth and probability where supported.</li>
+        <li>Entry comments, content and enabled/disabled state.</li>
+        <li>World-level settings and character associations.</li>
+        <li>Standalone lorebook import/export.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>PNG and asset handling</h3>
+      <ul>
+        <li>Read supported embedded SillyTavern metadata from PNG.</li>
+        <li>Display extracted metadata and validation results before import.</li>
+        <li>Preserve image bytes where possible when editing metadata.</li>
+        <li>Export PNG with the correct metadata chunk for the selected card format.</li>
+        <li>Support JSON-only export when no image exists.</li>
+        <li>Store large image files in app-private files; keep references and metadata in the database.</li>
+        <li>Handle corrupt, unsupported and metadata-free PNGs without crashing.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Project library</h3>
+      <ul>
+        <li>Local character and lorebook library.</li>
+        <li>Search, sort, filter, tag and duplicate.</li>
+        <li>Recent projects and draft states.</li>
+        <li>Link one lorebook to multiple characters where the format and product model allow.</li>
+        <li>Backup/export project data.</li>
+        <li>Delete and restore safeguards where practical.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="formats">
+  <div class="section-head"><h2>04 · SillyTavern format engine & strict validation</h2><span class="status warn">Critical subsystem</span></div>
+  <div class="callout warn"><strong>Hard requirement:</strong> All supported character-card, PNG metadata and lorebook formats must be implemented from the SillyTavern format engine/specifications. Do not invent a TavernForge-native replacement format and do not treat a loosely similar JSON shape as compatible.</div>
+  <div class="card">
+    <h3>Format-engine policy</h3>
+    <ul>
+      <li>Maintain explicit adapters/parsers/serializers for each supported SillyTavern format version.</li>
+      <li>Keep format version information attached to imported projects.</li>
+      <li>Validate against the exact target version's required structure and semantics.</li>
+      <li>Do not silently upgrade, downgrade, normalize away or discard fields.</li>
+      <li>Preserve unknown fields and extension data through round trips whenever possible.</li>
+      <li>Separate parsing, semantic validation, migration and serialization.</li>
+      <li>Keep format-engine code independent of Compose and UI models.</li>
+      <li>Track upstream format changes and add compatibility fixtures before claiming support.</li>
+    </ul>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3>Character-card formats</h3>
+      <p>Target the SillyTavern-supported character-card versions that are confirmed by the upstream specification and fixtures. Initial scope: V1 import where feasible, V2 and V3 support according to verified upstream definitions.</p>
+      <p class="muted small">Do not advertise a version as fully supported until import, edit, round-trip and export tests pass against real upstream fixtures.</p>
+    </div>
+    <div class="card">
+      <h3>PNG metadata</h3>
+      <p>Implement the actual metadata chunk conventions used by SillyTavern for each supported card version (including the relevant <code>chara</code> and <code>ccv3</code> paths where applicable). Validate chunk presence, encoding, payload and decoded card structure.</p>
+      <p class="muted small">Do not simply append JSON bytes to an image or rename a file extension.</p>
+    </div>
+    <div class="card">
+      <h3>Lorebook / World Info</h3>
+      <p>Follow SillyTavern World Info semantics and actual field names, defaults and value types. Cover entry keys, secondary keys, selective matching, activation, insertion, probability, recursion and world-level configuration as supported by the upstream version.</p>
+    </div>
+    <div class="card">
+      <h3>Validation levels</h3>
+      <ul>
+        <li><strong>Parse:</strong> valid JSON/PNG structure and decoding.</li>
+        <li><strong>Schema:</strong> required fields, types, enums and version rules.</li>
+        <li><strong>Semantic:</strong> field relationships and supported value constraints.</li>
+        <li><strong>Compatibility:</strong> target SillyTavern version/format behavior.</li>
+        <li><strong>Round-trip:</strong> import → edit/no-op → export preserves meaningful data.</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Validation behavior</h3>
+  <table>
+    <tr><th>Severity</th><th>Meaning</th><th>Export policy</th></tr>
+    <tr><td><strong>Error</strong></td><td>Invalid structure, missing required data, wrong type, malformed metadata or incompatible value.</td><td>Block strict export until fixed, unless an explicit safe export mode is defined for that format.</td></tr>
+    <tr><td><strong>Warning</strong></td><td>Potentially lossy conversion, unknown extension, unsupported optional feature or suspicious but parseable data.</td><td>Require user review/acknowledgement for risky transformations.</td></tr>
+    <tr><td><strong>Info</strong></td><td>Non-blocking suggestion, completeness or quality recommendation.</td><td>Allow export.</td></tr>
+  </table>
+  <div class="callout good"><strong>Lossless round-trip requirement:</strong> For imported data, unknown fields must be retained in a raw/extension representation and emitted again unless the user explicitly removes them or a documented format conversion makes preservation impossible. If preservation is impossible, disclose exactly what will be lost before export.</div>
+  <p class="muted small">Source-of-truth references to pin and review during implementation: SillyTavern documentation and upstream source/schema/fixtures. The project must record the upstream repository URL, commit/tag or documentation revision used for each implemented format adapter. Do not rely on memory or third-party summaries as the format contract.</p>
+</section>
+
+<section id="ai">
+  <div class="section-head"><h2>05 · Gemini integration & transparent API usage</h2></div>
+  <div class="card">
+    <h3>Bring Your Own Key (BYOK)</h3>
+    <ul>
+      <li>User supplies their own Google AI Studio API key.</li>
+      <li>No API keys, tokens or credentials may be hardcoded in source, resources, build files, tests, sample configs or repository history.</li>
+      <li>Never ship a shared developer key or proxy requests through a hidden backend.</li>
+      <li>Store the key locally using Android Keystore-backed encryption; never store it as plaintext in ordinary DataStore preferences.</li>
+      <li>Mask the key in UI, exclude it from logs, crash reports, analytics and exported project files.</li>
+      <li>Provide explicit update, verify and delete-key actions.</li>
+      <li>Explain that Google may bill or apply quotas according to the user's Google AI Studio/API account terms.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3>API Usage & Permissions panel</h3>
+    <p>The settings screen must expose a clear, user-controlled panel that explains exactly what the key may be used for. No permission is implied by another permission.</p>
+    <table>
+      <tr><th>Permission</th><th>Default</th><th>Behavior</th></tr>
+      <tr><td><strong>Use Gemini for text generation</strong></td><td><span class="status warn">Off until enabled</span></td><td>Allows requests for character JSON, lorebook JSON, field writing, expansion and review.</td></tr>
+      <tr><td><strong>Use Gemini for image generation</strong></td><td><span class="status warn">Off</span></td><td>Allows image-generation requests only when the selected model/API supports image output. Must require a separate opt-in.</td></tr>
+      <tr><td><strong>Allow automatic follow-up requests</strong></td><td><span class="status warn">Off</span></td><td>Allows multi-step generation workflows to make additional calls. Otherwise, ask before follow-up calls.</td></tr>
+    </table>
+    <div class="callout warn">Image generation is a separate capability and permission. If disabled, the app must not send image-generation prompts or invoke an image-capable model for image output. If the selected model does not support image generation, show that capability as unavailable rather than silently substituting another model.</div>
+    <h3 style="margin-top:20px">Usage transparency for every request</h3>
+    <p>Before execution, show a request preview with:</p>
+    <ul>
+      <li>Provider and exact selected model ID.</li>
+      <li>Request purpose: character, lorebook, field rewrite, image, etc.</li>
+      <li>What user content will be sent (concept, selected character fields, lore entries, image prompt or reference).</li>
+      <li>Whether image generation is involved.</li>
+      <li>Configured generation limits and any available token/cost estimate, clearly labelled as estimate.</li>
+      <li>Whether the request is one call or a multi-step workflow.</li>
+    </ul>
+    <p>After execution, show returned usage metadata when the provider supplies it (for example input/output token counts). Never invent exact costs where the provider does not return enough data. Link the user to the provider's current pricing/quota information.</p>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3>Generation capabilities</h3>
+      <ul>
+        <li>Generate complete character-card content from a bare concept.</li>
+        <li>Generate lorebooks and lore entries.</li>
+        <li>Generate character-aware lore from an existing project.</li>
+        <li>Rewrite or expand selected fields.</li>
+        <li>Generate alternate greetings and example dialogue.</li>
+        <li>Generate artwork only with image permission and compatible model.</li>
+        <li>Validate generated output before it enters the saved project.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Safe generation pipeline</h3>
+      <ol>
+        <li>Check permission and key availability.</li>
+        <li>Resolve selected model capability.</li>
+        <li>Show request preview and obtain confirmation as configured.</li>
+        <li>Build prompt using versioned prompt templates.</li>
+        <li>Call provider through Ktor client.</li>
+        <li>Parse structured output; never trust raw model output.</li>
+        <li>Run strict SillyTavern validation.</li>
+        <li>Present diff/review and accept/reject actions.</li>
+        <li>Save only after explicit user acceptance.</li>
+      </ol>
+    </div>
+  </div>
+  <div class="callout good"><strong>Generation is not authority:</strong> Gemini output is untrusted draft content. It must never bypass the format engine, validation, user review or explicit save/replace confirmation.</div>
+</section>
+
+<section id="architecture">
+  <div class="section-head"><h2>06 · Architecture & data ownership</h2></div>
+  <div class="card">
+    <h3>Architecture principles</h3>
+    <ul>
+      <li>Offline-first, local-first and account-free.</li>
+      <li>MVVM with unidirectional data flow.</li>
+      <li>Separate data, domain and presentation layers.</li>
+      <li>Repositories own persistence and data-source coordination.</li>
+      <li>Room is the source of truth for saved structured projects.</li>
+      <li>DataStore holds non-secret user preferences.</li>
+      <li>Keystore-backed encrypted storage holds API credentials.</li>
+      <li>Ktor is isolated behind provider/network interfaces.</li>
+      <li>Format engine is pure/domain-oriented and independent of UI.</li>
+      <li>All file access uses scoped storage/document picker and app-private managed assets as appropriate.</li>
+    </ul>
+  </div>
+  <h3>Suggested module layout</h3>
+  <pre>com.valhalla.tavernforge
+├── app
+├── core
+│   ├── common
+│   ├── model
+│   ├── designsystem
+│   ├── navigation
+│   ├── database
+│   ├── datastore
+│   ├── network
+│   ├── security
+│   └── file
+├── format
+│   ├── character
+│   │   ├── v1
+│   │   ├── v2
+│   │   └── v3
+│   ├── lorebook
+│   ├── png
+│   ├── validation
+│   └── fixtures
+├── data
+│   ├── character
+│   ├── lorebook
+│   ├── assets
+│   └── ai
+├── domain
+│   ├── character
+│   ├── lorebook
+│   ├── importexport
+│   └── generation
+└── feature
+    ├── home
+    ├── library
+    ├── character
+    ├── lorebook
+    ├── creation
+    ├── importexport
+    ├── ai
+    └── settings</pre>
+  <div class="card">
+    <h3>Core domain entities</h3>
+    <table>
+      <tr><th>Entity</th><th>Purpose</th></tr>
+      <tr><td><code>CharacterProject</code></td><td>Canonical project identity, selected format/version, timestamps, draft state and links.</td></tr>
+      <tr><td><code>CharacterDocument</code></td><td>Typed known fields plus preserved unknown/raw extension fields and source metadata.</td></tr>
+      <tr><td><code>Lorebook</code></td><td>Standalone World Info document with version-aware settings and entries.</td></tr>
+      <tr><td><code>LoreEntry</code></td><td>One lorebook entry, including keys, content, activation and insertion settings.</td></tr>
+      <tr><td><code>AssetReference</code></td><td>Managed image/document URI, MIME type, checksum, dimensions and metadata status.</td></tr>
+      <tr><td><code>ProjectLink</code></td><td>Relationship between characters, lorebooks and assets.</td></tr>
+      <tr><td><code>GenerationRecord</code></td><td>Optional local history of generation purpose, model ID, timestamp and provider usage metadata; never store API keys or unnecessary prompt content by default.</td></tr>
+    </table>
+    <p class="muted small">Avoid putting image binary data in Room rows. Store managed files separately and persist stable references, checksums and metadata.</p>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="section-head"><h2>07 · Technology stack & dependency policy</h2></div>
+  <div class="card">
+    <table>
+      <tr><th>Area</th><th>Target</th><th>Policy</th></tr>
+      <tr><td>Android Gradle Plugin</td><td><code>9.4.1</code></td><td>Requested baseline; validate toolchain compatibility at M0.</td></tr>
+      <tr><td>Gradle wrapper</td><td><code>9.8.1</code></td><td>Use checked-in wrapper files.</td></tr>
+      <tr><td>Kotlin</td><td><code>2.4.21</code></td><td>Requested baseline; verify compiler-plugin compatibility.</td></tr>
+      <tr><td>UI</td><td>Jetpack Compose</td><td>Compose BOM on a mutually compatible release line.</td></tr>
+      <tr><td>Design system</td><td>Material 3 latest alpha / expressive APIs</td><td>Pin exact versions; avoid uncontrolled version drift.</td></tr>
+      <tr><td>DI</td><td>Koin</td><td>Koin Kotlin Compiler Plugin; do not use Koin KSP plugin.</td></tr>
+      <tr><td>Database</td><td>Room 3</td><td>Use the Room 3 API/artifact line, not Room 2.</td></tr>
+      <tr><td>Preferences</td><td>DataStore</td><td>Non-secret preferences only.</td></tr>
+      <tr><td>Networking</td><td>Ktor</td><td>Gemini and any future HTTP integrations.</td></tr>
+      <tr><td>Async</td><td>Coroutines / Flow</td><td>Structured concurrency and cancellation.</td></tr>
+      <tr><td>Serialization</td><td>kotlinx.serialization</td><td>Strict format adapters; unknown-field preservation strategy required.</td></tr>
+      <tr><td>Images</td><td>Coil + platform image APIs</td><td>Coil for UI loading; PNG chunk manipulation handled by a dedicated tested component.</td></tr>
+    </table>
+  </div>
+  <div class="callout warn"><strong>Compatibility gate:</strong> The requested AGP, Gradle, Kotlin, Compose, Material, Koin compiler plugin and Room 3 versions must be checked as a complete matrix before implementation. “Latest” is not a reproducible version. Agent 1 must record exact resolved versions, official compatibility evidence and any known unsupported combinations. Do not silently change the requested baseline; report conflicts and propose the smallest explicit adjustment for approval.</div>
+  <p class="muted small">Use a version catalog, dependency locking or another reproducible dependency strategy. Pin alpha/beta dependencies explicitly. Keep Koin's compiler plugin distinct from Room's annotation/compiler processing choice.</p>
+</section>
+
+<section id="agents">
+  <div class="section-head"><h2>08 · Multi-agent team & execution protocol</h2></div>
+  <div class="grid">
+    <div class="card"><h3>Agent 0 · Supervisor</h3><ul><li>Owns project execution and final decisions.</li><li>Delegates, integrates and resolves conflicts.</li><li>Maintains source-of-truth documents and status.</li><li>Builds the UI comparison HTML from Agent 3 proposals.</li><li>Obtains user approval before UI direction is locked.</li><li>Reviews release readiness.</li></ul></div>
+    <div class="card"><h3>Agent 1 · Scope & dependency planner</h3><ul><li>Requirements decomposition and acceptance criteria.</li><li>Module boundaries, interfaces and data contracts.</li><li>Dependency/version compatibility matrix.</li><li>Risk analysis, task graph and sequencing.</li><li>Upstream SillyTavern format research and fixtures plan.</li></ul></div>
+    <div class="card"><h3>Agent 2 · Functionality implementor</h3><ul><li>Build configuration and core foundations.</li><li>Room3, repositories and domain logic.</li><li>Format engine, import/export and validation.</li><li>Gemini client, key security and usage controls.</li><li>Implements approved UI and integrations.</li></ul></div>
+    <div class="card"><h3>Agent 3 · UI/UX expert</h3><ul><li>Proposes materially different UX directions.</li><li>Information architecture and navigation.</li><li>Wireframes, prototypes and component system.</li><li>Responsive/adaptive layouts and accessibility.</li><li>Documents trade-offs and rationale.</li></ul></div>
+    <div class="card"><h3>Agent 4 · Tester</h3><ul><li>Unit, integration and UI tests.</li><li>Format fixtures, PNG and round-trip tests.</li><li>Gemini mocks, permission and failure-path tests.</li><li>Regression and build compatibility checks.</li><li>Reports reproducible defects and evidence.</li></ul></div>
+  </div>
+  <div class="card">
+    <h3>Execution order — parallel work with a mandatory design gate</h3>
+    <ol>
+      <li><strong>Agent 0 kickoff:</strong> establish goals, constraints, repo rules and assignments.</li>
+      <li><strong>Parallel discovery:</strong> Agent 1 defines scope/contracts/dependencies; Agent 3 explores UX directions; Agent 2 may build only agreed non-UI foundations; Agent 4 prepares test strategy and fixtures.</li>
+      <li><strong>Agent 0 integration:</strong> review proposals and create the comparison page from Agent 3's actual work.</li>
+      <li><strong>Mandatory user decision:</strong> user selects one approach or requests a hybrid. No final UI implementation before approval.</li>
+      <li><strong>Implementation:</strong> Agent 2 builds to approved contracts and design; Agent 1 tracks scope; Agent 3 supports design QA; Agent 4 tests incrementally.</li>
+      <li><strong>Release review:</strong> Agent 4 provides test evidence; Agent 0 checks acceptance criteria and unresolved risks.</li>
+    </ol>
+  </div>
+  <div class="callout good"><strong>UI comparison HTML deliverable:</strong> at least three distinct proposals — (A) Material Expressive Native, (B) Studio Workspace/editor-first, (C) Hybrid Tavern/character-library-first. Include comparable screen previews, navigation, key workflows, component treatments, strengths, weaknesses, accessibility/adaptive considerations and a recommendation. The page must let the user clearly choose A/B/C or request a hybrid. The selection is a decision gate, not an automatic implementation trigger.</div>
+  <h3>Agent operating rules</h3>
+  <ul>
+    <li>Agents must read the current project documents before changing architecture or contracts.</li>
+    <li>One owner per file/module at a time; coordinate shared-file changes.</li>
+    <li>Do not fabricate API behavior, format fields, dependency compatibility or test results.</li>
+    <li>Every task has scope, inputs, output artifacts and acceptance criteria.</li>
+    <li>Agents report blockers and assumptions explicitly.</li>
+    <li>No secrets in prompts, logs, commits, test fixtures or generated documentation.</li>
+    <li>Agent 0 is responsible for reconciling contradictory recommendations rather than silently merging them.</li>
+  </ul>
+</section>
+
+<section id="roadmap">
+  <div class="section-head"><h2>09 · Roadmap & milestones</h2></div>
+  <table>
+    <tr><th>Milestone</th><th>Scope</th><th>Exit criteria</th></tr>
+    <tr><td>M0 · Project bootstrap</td><td>Repo, Gradle, modules, CI baseline, version matrix.</td><td>Reproducible build; compatibility risks documented.</td></tr>
+    <tr><td>M1 · Format engine foundation</td><td>Upstream specs, adapters, fixtures, strict validator.</td><td>Known fixtures parse and validate; round-trip tests begin.</td></tr>
+    <tr><td>M2 · Local project foundation</td><td>Room3, repositories, file storage, DataStore and security.</td><td>Projects persist offline; secret storage design verified.</td></tr>
+    <tr><td>M3 · Workflow 1: Combine</td><td>JSON/PNG/lorebook import, association, preview and export.</td><td>Partial assets work; validation and round-trip tests pass.</td></tr>
+    <tr><td>M4 · Workflow 3: Manual authoring</td><td>Character form, lorebook editor, basic/advanced modes.</td><td>Manual projects export through the same format engine.</td></tr>
+    <tr><td>M5 · Workflow 2: Gemini</td><td>BYOK, model discovery, permission switches, usage panel, generation.</td><td>Text/image permissions enforced; output validated and reviewed.</td></tr>
+    <tr><td>M6 · Approved UI integration</td><td>Complete UI, navigation, accessibility, adaptive layouts.</td><td>All three workflows usable end-to-end.</td></tr>
+    <tr><td>M7 · Hardening</td><td>Regression, malformed input, large files, failure and security tests.</td><td>No known critical data-loss or credential-handling defects.</td></tr>
+    <tr><td>M8 · FOSS release</td><td>License, notices, documentation, changelog and distribution.</td><td>Release checklist signed off by Agent 0.</td></tr>
+  </table>
+  <p class="muted small">Milestones are dependency-oriented, not calendar estimates. Agent 1 should produce estimates only after inspecting the repository and upstream format scope.</p>
+</section>
+
+<section id="acceptance">
+  <div class="section-head"><h2>10 · MVP acceptance checklist</h2><button class="btn" onclick="window.print()">Print / Save as PDF</button></div>
+  <div class="card checklist" id="checks">
+    <label><input type="checkbox"> Workflow 1 imports character JSON, lorebook JSON and PNG independently or in combination.</label>
+    <label><input type="checkbox"> PNG import extracts and validates embedded SillyTavern metadata.</label>
+    <label><input type="checkbox"> Workflow 1 associates assets and exports supported JSON/PNG/lorebook outputs.</label>
+    <label><input type="checkbox"> Workflow 2 accepts a user-supplied Gemini API key without any hardcoded/shared key.</label>
+    <label><input type="checkbox"> Text-generation and image-generation permissions are separate and image generation defaults to off.</label>
+    <label><input type="checkbox"> UI shows model, purpose, data sent and available usage information before/after requests.</label>
+    <label><input type="checkbox"> Gemini can generate character and lorebook content from a concept.</label>
+    <label><input type="checkbox"> AI output is strictly validated and requires user review before saving.</label>
+    <label><input type="checkbox"> Workflow 3 creates characters and lorebooks without AI or network access.</label>
+    <label><input type="checkbox"> Basic and advanced authoring modes distinguish required format fields from optional creative guidance.</label>
+    <label><input type="checkbox"> All workflows use the same canonical project model and SillyTavern format engine.</label>
+    <label><input type="checkbox"> Unknown imported fields/extensions survive a no-op round trip where technically possible.</label>
+    <label><input type="checkbox"> Invalid output is blocked from strict export or explicitly presented as a documented exception.</label>
+    <label><input type="checkbox"> Projects and assets remain accessible offline.</label>
+    <label><input type="checkbox"> API keys never appear in logs, exports, source control or ordinary preference storage.</label>
+    <label><input type="checkbox"> Unit, integration, format-fixture, PNG, security and regression tests pass.</label>
+  </div>
+</section>
+
+<section id="deliverables">
+  <div class="section-head"><h2>11 · Nine kickoff deliverables</h2></div>
+  <p class="lead">These nine documents are consolidated here as named sections. This HTML is the master charter; if the project later splits them into separate files, each file must link back to this baseline and remain consistent with it.</p>
+  <div class="card">
+    <ol>
+      <li><strong>PROJECT.md equivalent — Product vision & scope:</strong> identity, mission, three workflows, functional boundaries and FOSS principles. Sections 01–03.</li>
+      <li><strong>ARCHITECTURE.md equivalent — Architecture:</strong> module layout, layers, data ownership, canonical model and offline-first rules. Section 06.</li>
+      <li><strong>TECH_STACK.md equivalent — Technology baseline:</strong> requested toolchain, dependency policy and compatibility gate. Section 07.</li>
+      <li><strong>DATA_MODELS.md equivalent — Data contracts:</strong> CharacterProject, CharacterDocument, Lorebook, LoreEntry, AssetReference, ProjectLink and GenerationRecord. Section 06.</li>
+      <li><strong>IMPORT_EXPORT.md equivalent — SillyTavern format contract:</strong> versioned adapters, PNG metadata, World Info, validation severities and lossless round trips. Section 04.</li>
+      <li><strong>AI_GENERATION.md equivalent — Gemini contract:</strong> BYOK security, separate text/image permissions, usage transparency, generation pipeline and review gates. Section 05.</li>
+      <li><strong>AGENTS.md equivalent — Agent instructions:</strong> five roles, execution order, design approval gate and operating rules. Section 08.</li>
+      <li><strong>ROADMAP.md equivalent — Milestones:</strong> M0–M8 sequencing and exit criteria. Section 09.</li>
+      <li><strong>DESIGN_REVIEW.md equivalent — UI/UX decision process:</strong> three design directions, comparison HTML requirements and mandatory user approval. Section 08.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="risks">
+  <div class="section-head"><h2>12 · Risks, decisions and open questions</h2></div>
+  <div class="card">
+    <table>
+      <tr><th>Risk / decision</th><th>Required action</th><th>Owner</th></tr>
+      <tr><td>Upstream SillyTavern formats evolve.</td><td>Pin source revisions, maintain fixtures, document supported versions and regression-test upgrades.</td><td>Agent 1 + Agent 4</td></tr>
+      <tr><td>Unknown fields may be lost during editing.</td><td>Design raw/extension preservation and round-trip tests before building editors.</td><td>Agent 1 + Agent 2</td></tr>
+      <tr><td>Requested dependency versions may conflict.</td><td>Produce verified compatibility matrix and request approval for any necessary adjustment.</td><td>Agent 1</td></tr>
+      <tr><td>Gemini model capabilities and names change.</td><td>Discover available models/capabilities dynamically where supported; never assume image output support.</td><td>Agent 2 + Agent 4</td></tr>
+      <tr><td>API costs and quotas vary.</td><td>Show provider-returned usage; label estimates; link current provider terms; never promise fixed costs.</td><td>Agent 2</td></tr>
+      <tr><td>Image generation can incur separate cost.</td><td>Separate opt-in, explicit request preview and no image call when disabled.</td><td>Agent 2 + Agent 4</td></tr>
+      <tr><td>Large or malformed PNG/JSON inputs.</td><td>Bound resource usage, validate safely and test corrupt/oversized files.</td><td>Agent 2 + Agent 4</td></tr>
+      <tr><td>Final UI direction is not selected.</td><td>Do not finalize UI implementation until comparison HTML is reviewed by the user.</td><td>Agent 0</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>Decisions to finalize during discovery</h3>
+    <ul>
+      <li>Exact SillyTavern format versions and upstream source revision supported by MVP.</li>
+      <li>Whether card V1 is import-only or outside MVP; do not claim support without fixtures.</li>
+      <li>Exact Gemini models available for text and image generation at implementation time.</li>
+      <li>Whether generation history is enabled by default and what local content it retains.</li>
+      <li>Open-source license and repository hosting/distribution.</li>
+      <li>Final UI direction after Agent 0 presents Agent 3's comparison HTML.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="card">
+    <h2>Definition of success</h2>
+    <p class="lead">A user can choose any of the three workflows — combine existing assets, generate with their own Gemini key, or create manually — and end with a strictly validated SillyTavern-compatible character card and lorebook. They retain control over API usage, especially image generation. Their projects remain local, their credentials remain private, and importing/editing/exporting does not silently destroy data.</p>
+    <p><strong>TavernForge should be a reliable format tool first, a great authoring experience second, and an AI assistant third.</strong> AI is optional; format correctness is not.</p>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">
+  <strong>TavernForge · Valhalla</strong>
+  <p class="small">Main project kickoff charter · Consolidated nine-deliverable baseline · Rev 1.0 · 31 October 2026</p>
+  <p class="small">This document defines intended behavior. Exact upstream format support and dependency compatibility must be verified against pinned authoritative sources during discovery before implementation claims are made.</p>
+</div></footer>
+<button class="btn top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+</body>
+</html>

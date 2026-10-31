@@ -1,0 +1,81 @@
+{
+  "manifest_version": 1,
+  "observed_on": "2026-10-31",
+  "status": "Discovery fixtures only. No TavernForge adapter or Android tests have run.",
+  "upstream": {
+    "repository": "https://github.com/SillyTavern/SillyTavern",
+    "revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+    "branch_at_observation": "release"
+  },
+  "entries": [
+    {
+      "id": "st-reference-tests-tavern-card-validator.test.js",
+      "path": "upstream/sillytavern/tests/tavern-card-validator.test.js",
+      "kind": "upstream-reference",
+      "source_url": "https://github.com/SillyTavern/SillyTavern/blob/06bde939fb1e9c4c8d8641d810f0a916b5bce127/tests/tavern-card-validator.test.js",
+      "raw_url": "https://raw.githubusercontent.com/SillyTavern/SillyTavern/06bde939fb1e9c4c8d8641d810f0a916b5bce127/tests/tavern-card-validator.test.js",
+      "source_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "sha256": "74cb00078f2ab7bb4f2a27712edf50bf071395015442f96503fb6d895cb962e7",
+      "license": "AGPL-3.0; see upstream/sillytavern/LICENSE",
+      "expected": "reference only; not an executable TavernForge test"
+    },
+    {
+      "id": "st-reference-src-character-card-parser.js",
+      "path": "upstream/sillytavern/src/character-card-parser.js",
+      "kind": "upstream-reference",
+      "source_url": "https://github.com/SillyTavern/SillyTavern/blob/06bde939fb1e9c4c8d8641d810f0a916b5bce127/src/character-card-parser.js",
+      "raw_url": "https://raw.githubusercontent.com/SillyTavern/SillyTavern/06bde939fb1e9c4c8d8641d810f0a916b5bce127/src/character-card-parser.js",
+      "source_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "sha256": "b74541cd54bb3fe3ab39b3e040f6dba824b263ed9344e4dcf98363e4e148e07c",
+      "license": "AGPL-3.0; see upstream/sillytavern/LICENSE",
+      "expected": "reference only; not an executable TavernForge test"
+    },
+    {
+      "id": "st-reference-LICENSE",
+      "path": "upstream/sillytavern/LICENSE",
+      "kind": "upstream-reference",
+      "source_url": "https://github.com/SillyTavern/SillyTavern/blob/06bde939fb1e9c4c8d8641d810f0a916b5bce127/LICENSE",
+      "raw_url": "https://raw.githubusercontent.com/SillyTavern/SillyTavern/06bde939fb1e9c4c8d8641d810f0a916b5bce127/LICENSE",
+      "source_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef",
+      "license": "AGPL-3.0; see upstream/sillytavern/LICENSE",
+      "expected": "reference only; not an executable TavernForge test"
+    },
+    {
+      "id": "st-v1-empty-fields",
+      "path": "cases/st-v1-empty-fields.json",
+      "kind": "materialized-upstream-helper",
+      "source_url": "https://github.com/SillyTavern/SillyTavern/blob/06bde939fb1e9c4c8d8641d810f0a916b5bce127/tests/tavern-card-validator.test.js",
+      "source_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "source_helper": "makeV1Card",
+      "derivation": "JSON representation of the object returned by the named helper; empty strings, arrays, and object values preserved; no generated character content",
+      "sha256": "8320c78ee3901df1dfb8066908e0a979c8fab6762863e46e1703649e3817cc2b",
+      "license": "Derived from AGPL-3.0 upstream test; see upstream/sillytavern/LICENSE",
+      "expected": "upstream detection V1; strict V1 import candidate, not yet tested"
+    },
+    {
+      "id": "st-v2-empty-fields",
+      "path": "cases/st-v2-empty-fields.json",
+      "kind": "materialized-upstream-helper",
+      "source_url": "https://github.com/SillyTavern/SillyTavern/blob/06bde939fb1e9c4c8d8641d810f0a916b5bce127/tests/tavern-card-validator.test.js",
+      "source_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "source_helper": "makeV2Card",
+      "derivation": "JSON representation of the object returned by the named helper; empty strings, arrays, and object values preserved; no generated character content",
+      "sha256": "56b3e3ae45ccbe265ae1b0f3e95c686c1d844753dc6b28800bcf1a85ce4ddc0f",
+      "license": "Derived from AGPL-3.0 upstream test; see upstream/sillytavern/LICENSE",
+      "expected": "upstream detection V2; strict V2 candidate, not yet tested"
+    },
+    {
+      "id": "st-v3-envelope-only",
+      "path": "cases/st-v3-envelope-only.json",
+      "kind": "materialized-upstream-helper",
+      "source_url": "https://github.com/SillyTavern/SillyTavern/blob/06bde939fb1e9c4c8d8641d810f0a916b5bce127/tests/tavern-card-validator.test.js",
+      "source_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+      "source_helper": "makeV3Card",
+      "derivation": "JSON representation of the object returned by the named helper; empty strings, arrays, and object values preserved; no generated character content",
+      "sha256": "a5bd503aa110b433a113982fb5a0a8ea7ab5fa0ef6877ecf0d6644b76aa318f5",
+      "license": "Derived from AGPL-3.0 upstream test; see upstream/sillytavern/LICENSE",
+      "expected": "upstream detection V3; negative strict V3 case because required content is absent"
+    }
+  ]
+}

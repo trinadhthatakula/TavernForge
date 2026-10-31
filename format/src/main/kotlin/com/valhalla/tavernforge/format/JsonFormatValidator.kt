@@ -51,7 +51,11 @@ internal object JsonFormatValidator {
 
         private fun characterV3(data: JsonObject) {
             V2Validator.stringFields.forEach { string(data, it, "/data", true) }
-            listOf("alternate_greetings", "tags", "group_only_greetings").forEach { stringArray(data, it, "/data", true) }
+            listOf("alternate_greetings", "tags").forEach { stringArray(data, it, "/data", true) }
+            if (!data.containsKey("group_only_greetings")) {
+                issue("REQUIRED_FIELD", "V3 requires this array; it may be empty [] when no group greetings are used.",
+                    "/data/group_only_greetings")
+            } else stringArray(data, "group_only_greetings", "/data", true)
             obj(data, "extensions", "/data", true)
             obj(data, "character_book", "/data")?.let { book(it, "/data/character_book", true) }
             string(data, "nickname", "/data")

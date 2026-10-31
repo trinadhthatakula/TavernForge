@@ -2,7 +2,7 @@
 
 Baseline: [project kickoff charter](../../TavernForge_Project_Kickoff.html). Scope: the JSON format expansion requested 31 October 2026, building on [foundation verification](FOUNDATION_VERIFICATION.md). Contracts and interpretation decisions are recorded in [JSON format support](../build/JSON_FORMAT_SUPPORT.md).
 
-**Final local verification passes 102 JVM tests with zero failures, errors or skips, and zero Android lint findings.** The sole build owner assembled `0.2.0-internal`; the tester independently inspected the final XML, fixture audit, APK metadata, permissions and signature.
+**The full 31 October verification passed 102 JVM tests with zero failures, errors or skips, and zero Android lint findings.** The sole build owner assembled `0.2.0-internal`; the tester independently inspected the XML, fixture audit, APK metadata, permissions and signature. The 1 November diagnostic clarification and its focused rerun are recorded below separately.
 
 ## Independent expectations and fixtures
 
@@ -56,6 +56,20 @@ Independent artifact commands:
 ```
 
 The APK is `com.valhalla.tavernforge`, version code 2 / `0.2.0-internal`, 13,520,958 bytes, SHA-256 `2ffaa0ebb4410bb0ef93b19acf69368aaa8bb6ba993f27b59932ab7d621a2df3`. APK Signature Scheme v2 verifies with one signer. The SDK signer emits a JDK native-access warning and exits successfully. The only requested permission is the app-scoped `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`; Internet and broad-storage permissions are absent. This is internal debug-artifact verification, not release signing.
+
+## 1 November diagnostic clarification
+
+The missing V3 `group_only_greetings` diagnostic now states: “V3 requires this array; it may be empty [] when no group greetings are used.” Schema requirements are unchanged. The existing required-fields test now checks the helpful message, confirms validation does not insert a missing array or alter the source bytes, and confirms explicit `[]` validates and exports byte-for-byte unchanged. Null and other wrong types still fail.
+
+The sole build owner ran:
+
+```sh
+ANDROID_HOME=/Users/trinadhthatakula/Library/Android/sdk ./gradlew :format:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --offline --no-daemon --console plain
+```
+
+The command passed in 16 seconds. Independent XML inspection confirms **81 format + 17 app = 98 tests executed**, zero failures, errors or skips, and zero lint issues. The four unchanged model tests passed in the earlier full 102-test run and were not rerun for this wording change.
+
+The updated `0.2.0-internal` / code 2 APK is 13,521,062 bytes, SHA-256 `2e134bc28b3e2c61fd1973e54445f3758eaa6472dbbe4e00cb113e7b22ecc9a0`, independently rehashed by the tester. The build owner verified metadata and signature. The supervisor reports successful replacement installation and cold launch on the connected device; the tester did not independently operate the device. This does not add document-picker or live upstream-interoperability evidence.
 
 ## Scope limits
 

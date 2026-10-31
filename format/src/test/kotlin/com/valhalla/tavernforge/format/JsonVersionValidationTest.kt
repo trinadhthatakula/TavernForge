@@ -98,6 +98,19 @@ class JsonVersionValidationTest {
             invalid(v3Data { it.withoutField(field) }, "/data/$field")
             invalid(v3Data { it.withField(field, JsonNull) }, "/data/$field")
         }
+
+        val missingJson = v3Data { it.withoutField("group_only_greetings") }
+        val missing = engine.read(missingJson)
+        val issue = engine.validate(missing).issues.single { it.path == "/data/group_only_greetings" }
+        assertEquals("REQUIRED_FIELD", issue.code)
+        assertTrue("Explain that actual greeting content is optional", issue.message.contains("empty []"))
+        assertFalse("Validation must not insert a missing array", (missing.raw.getValue("data") as JsonObject).containsKey("group_only_greetings"))
+        assertArrayEquals(missingJson.encodeToByteArray(), missing.source.bytes())
+
+        val emptyJson = v3Data { it.withField("group_only_greetings", JsonArray(emptyList())) }
+        val empty = valid(emptyJson)
+        assertEquals(JsonArray(emptyList()), (empty.raw.getValue("data") as JsonObject)["group_only_greetings"])
+        assertArrayEquals(emptyJson.encodeToByteArray(), engine.exportOriginalFormat(empty))
     }
 
     @Test fun v3RequiredFieldTypesAndArrayElementsAreChecked() {

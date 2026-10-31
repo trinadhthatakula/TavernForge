@@ -4,9 +4,11 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
-The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info. The inspector selects the detected format's validation rules and shows its version and lore-entry count. Engine edits and strict exports retain the source kind, unknown data, and number lexemes. The final offline build passes **102 JVM tests** and Android lint; the repository remains private and the toolchain is unchanged. This is an internal JSON inspector, not the full MVP or a certification of SillyTavern interoperability.
+**In progress:** the [local JSON project library](planning/PROJECT_LIBRARY.md), the first M2 persistence increment. The user authorized proceeding after the JSON update. Separate owners are implementing Room 3/managed files, library UI/build integration, and independent persistence tests. The target internal version is 0.3.0; this work is not yet verified.
 
-[GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was created **private** under the user's explicit authorization. The kickoff and verified product changes are pushed to `main`. Keep the repository private during internal testing. Community publication is a later step.
+The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info. The inspector selects the detected format's validation rules and shows its version and lore-entry count. Engine edits and strict exports retain the source kind, unknown data, and number lexemes. The final offline build passes **102 JVM tests** and Android lint; the toolchain is unchanged. The user subsequently authorized public repository access and Dependabot. This is an internal JSON inspector, not the full MVP or a certification of SillyTavern interoperability.
+
+[GitHub: trinadhthatakula/TavernForge](https://github.com/trinadhthatakula/TavernForge) was initially private. On 1 November the user explicitly authorized making it **public**, continuing GitHub Actions CI, and adding Dependabot. This supersedes the earlier visibility restriction; see [the decision and automation policy](planning/REPOSITORY_DECISION.md). Release readiness and project licensing remain separate decisions. The previously verified JSON changes are pushed to `main`; the library increment is in progress.
 
 **Approved UI:** C's character-library identity, A's native controls/navigation, and B's optional inspector on expanded windows. See [the recorded decision](DESIGN_DECISION.md). No further design-selection approval is required for that direction.
 
@@ -15,13 +17,13 @@ The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2
 - `:core:model`: owned source bytes/SHA-256, resource budgets, diagnostics, projections, minimal project identity.
 - `:format`: strict bounded UTF-8/JSON parsing, duplicate-name detection, unknown/null/number preservation, atomic revision-aware JSON Pointer patches, version-dispatched schema checks and strict same-format JSON export for the six supported JSON kinds. Untouched valid exports retain exact source bytes. Unknown/future versions remain inspectable with strict exports blocked. See the [support matrix](build/JSON_FORMAT_SUPPORT.md).
 - `:app`: real system-picker JSON intake, bounded streaming, background parsing, validation diagnostics, and compact/expanded inspection UI. App binding uses the Koin compiler plugin. Inspection is in memory; process death requires selecting the file again. Editing/export are engine APIs, not exposed app features yet.
-- Root Gradle wrapper, pinned version catalog and dependency locks; [private CI workflow](../.github/workflows/android.yml) with tests, fixture audit, APK build, and seven-day artifacts.
+- Root Gradle wrapper, pinned version catalog and dependency locks; [CI workflow](../.github/workflows/android.yml) with tests, fixture audit, APK build, and seven-day artifacts.
 
 ## Agent assignments and results
 
 | Owner | Scope | Result |
 | --- | --- | --- |
-| Supervisor | Repository/GitHub, decisions, integration and status | JSON update pushed to private remote; local tests, device install/launch and hosted CI verified |
+| Supervisor | Repository/GitHub, decisions, integration and status | JSON update pushed to remote; local tests, device install/launch and hosted CI verified |
 | `json_versions_engine` | Model/format production sources | Six JSON kinds, format-dispatched validation/export and source-kind guards implemented |
 | `json_versions_tests` | Independent contract tests and fixtures | Five synthetic positives with pinned provenance; exact round-trip, edit, negative and numeric-boundary regressions |
 | `json_versions_ui` | Android inspector and sole Gradle build owner | Format-aware UI, 0.2.0-internal build and app dispatch tests implemented |
@@ -47,7 +49,7 @@ Fixture integrity audit passes: eleven pinned files, three helper JSON objects a
 
 The first [CI run](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225026908) stopped before building because `sdkmanager` was not on the runner path. The next setup attempt requested the obsolete SDK `tools` package through the action's defaults. The workflow now explicitly sets up command-line tools and requests only `platform-tools` before installing pinned platform/build-tools packages. The corrected [run 41225752764](https://github.com/trinadhthatakula/TavernForge/actions/runs/41225752764) passed in 5m37s on code/workflow commit `9da318c`. Tests, lint, fixture audit, APK build and both artifact uploads succeeded. Artifacts are retained for seven days. Workflow runtime/image deprecation notices remain non-blocking and do not alter the tested toolchain. The initial isolated dependency probe separately passed three compiler integration tests; these are not included in either the original 64 or current 102 product-test totals.
 
-The [JSON update CI run 41229724561](https://github.com/trinadhthatakula/TavernForge/actions/runs/41229724561) passed on commit `5866cde`, including tests, fixture audit, lint, APK build and artifact uploads. The user then reported that the missing V3 group-greetings message was unclear; a diagnostic follow-up explains that the array is required but may be empty `[]`. Validation continues to preserve the input without inserting defaults. The follow-up offline run passed 81 format and 17 app tests (98 executed), clean lint and APK build; the four unchanged model tests passed in the preceding full run. The APK fingerprint above is the diagnostic follow-up artifact.
+The [JSON update CI run 41229724561](https://github.com/trinadhthatakula/TavernForge/actions/runs/41229724561) passed on commit `5866cde`, including tests, fixture audit, lint, APK build and artifact uploads. The user then reported that the missing V3 group-greetings message was unclear; a diagnostic follow-up explains that the array is required but may be empty `[]`. Validation continues to preserve the input without inserting defaults. The follow-up offline run passed 81 format and 17 app tests (98 executed), clean lint and APK build; the four unchanged model tests passed in the preceding full run. The APK fingerprint above is the diagnostic follow-up artifact. [CI run 41230221340](https://github.com/trinadhthatakula/TavernForge/actions/runs/41230221340) also passed on pushed commit `0a79454`, completing hosted verification of the 0.2 update.
 
 ## Toolchain and constraints
 
@@ -58,11 +60,11 @@ The [JSON update CI run 41229724561](https://github.com/trinadhthatakula/TavernF
 
 ## Milestones and remaining work
 
-M0 bootstrap is complete for this internal build: private repository, pinned wrapper/catalog/locks, product modules, local verification and a successful hosted CI build. M1 has the JSON model/parser/patch/validator/export foundation for character V1/V2/V3, V2/V3 lorebooks and native World Info. PNG/APNG, media, conversion review and real upstream interoperability still remain pending. M2 and later product milestones remain incomplete.
+M0 bootstrap is complete for this internal build: repository, pinned wrapper/catalog/locks, product modules, local verification and a successful hosted CI build. M1 has the JSON model/parser/patch/validator/export foundation for character V1/V2/V3, V2/V3 lorebooks and native World Info. PNG/APNG, media, conversion review and real upstream interoperability still remain pending. M2 and later product milestones remain incomplete.
 
 Next implementation work: Room 3 persistence and managed sources, repository/domain integration, editing/export UI, full import/asset association and the planned binary containers. Gemini remains optional future work with independent permissions and Keystore-backed credentials; this internal APK has no key flow or network permission. Finish device tests before community readiness claims.
 
-Open decisions include public release timing, license/final public identity/distribution, final minimum SDK policy, cross-version migration scope, and generation-history defaults. Hosting is resolved to the private GitHub repository above.
+Open decisions include public release timing, license/final public identity/distribution, final minimum SDK policy, cross-version migration scope, and generation-history defaults. Hosting is resolved to the public GitHub repository above.
 
 ## Reference documents
 

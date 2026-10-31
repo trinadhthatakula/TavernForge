@@ -12,7 +12,7 @@ The internal Android app imports JSON through the system document picker and dis
 
 The user has [approved a hybrid UI direction](docs/DESIGN_DECISION.md): C’s library, A’s native controls, and B’s expanded inspector. [Explore the design references](docs/design-comparison.html).
 
-[GitHub repository](https://github.com/trinadhthatakula/TavernForge) is **private** during internal testing. Community publication is a later decision. Persistence, manual editing/export UI, PNG/APNG and CHARX containers, media handling, Gemini, and full device/interoperability validation remain pending. The internal build does not establish full SillyTavern compatibility.
+[GitHub repository](https://github.com/trinadhthatakula/TavernForge) is **public** under the user’s 1 November decision. [GitHub Actions](.github/workflows/android.yml) checks pull requests and main; [Dependabot](.github/dependabot.yml) proposes weekly dependency updates for review. Public repository access does not establish release readiness. Persistence, manual editing/export UI, PNG/APNG and CHARX containers, media handling, Gemini, and full device/interoperability validation remain pending. The internal build does not establish full SillyTavern compatibility.
 
 ## Build and check
 
@@ -23,7 +23,7 @@ python3 format/fixtures/verify_manifest.py
 ./gradlew :core:model:test :format:test :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --no-daemon --console plain
 ```
 
-The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. Use `--offline` only after the required dependencies are cached. [GitHub Actions](.github/workflows/android.yml) runs foundation tests and builds a private internal APK artifact.
+The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`. Use `--offline` only after the required dependencies are cached. [GitHub Actions](.github/workflows/android.yml) runs foundation tests and builds an internal APK artifact. Artifacts follow the public repository’s access rules.
 
 Modules: `:core:model` owns immutable source and diagnostic types; `:format` owns the version-aware engine; `:app` contains the Android inspector. `tools/compatibility-smoke` remains a separate dependency probe.
 

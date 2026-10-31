@@ -28,9 +28,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
+import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.material3.adaptive.navigation3.SupportingPaneSceneStrategy
 import androidx.compose.material3.adaptive.navigation3.rememberSupportingPaneSceneStrategy
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,6 +53,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import androidx.window.core.layout.WindowSizeClass
 import com.valhalla.tavernforge.core.model.Diagnostic
 import com.valhalla.tavernforge.core.model.Severity
 import com.valhalla.tavernforge.core.model.SourceFormat
@@ -56,12 +61,35 @@ import kotlinx.serialization.Serializable
 
 @Serializable private data object Workshop : NavKey
 @Serializable private data object Inspector : NavKey
+@Serializable private data object Editor : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun TavernForgeApp(viewModel: InspectionViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Workshop)
+    val adaptiveInfo = currentWindowAdaptiveInfoV2()
+    val sceneStrategies = if (adaptiveInfo.windowSizeClass.isWidthAtLeastBreakpoint(
+            WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND,
+        )) {
+        val directive = calculatePaneScaffoldDirective(adaptiveInfo)
+        listOf(rememberSupportingPaneSceneStrategy<NavKey>(
+            directive = PaneScaffoldDirective(
+                maxHorizontalPartitions = directive.maxHorizontalPartitions,
+                horizontalPartitionSpacerSize = directive.horizontalPartitionSpacerSize,
+                maxVerticalPartitions = directive.maxVerticalPartitions,
+                verticalPartitionSpacerSize = directive.verticalPartitionSpacerSize,
+                defaultPanePreferredWidth = directive.defaultPanePreferredWidth,
+                defaultPanePreferredHeight = directive.defaultPanePreferredHeight,
+                excludedBounds = directive.excludedBounds,
+                // Pane changes must not select the library search field and open the keyboard.
+                shouldAutoFocusCurrentDestination = false,
+            ),
+        ))
+    } else {
+        // Tall phone windows still use native single-destination navigation.
+        emptyList()
+    }
     var pendingReplacement by remember { mutableStateOf<(() -> Unit)?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -69,11 +97,20 @@ fun TavernForgeApp(viewModel: InspectionViewModel) {
             if (backStack.lastOrNull() != Inspector) backStack.add(Inspector)
         }
     }
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        viewModel.completeExport(uri)
+    }
     fun protectDraft(action: () -> Unit) {
-        if (state.hasUnsavedDraft) pendingReplacement = action else action()
+        if (state.busy) return
+        val proceed = { viewModel.discardEdits(); action() }
+        if (state.hasUnsavedWork) pendingReplacement = proceed else proceed()
     }
     val importFile = { protectDraft { launcher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) } }
-    val closeInspector = { if (backStack.size > 1) backStack.removeLastOrNull(); Unit }
+    val closeInspector = { if (!state.busy && backStack.size > 1) backStack.removeLastOrNull(); Unit }
+    val closeEditor = { protectDraft { backStack.removeLastOrNull() } }
+    LaunchedEffect(state.editor, state.operation) {
+        if (state.editor == null && state.operation == null && backStack.lastOrNull() == Editor) backStack.removeLastOrNull()
+    }
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold) }) },
@@ -81,8 +118,8 @@ fun TavernForgeApp(viewModel: InspectionViewModel) {
         NavDisplay(
             modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
             backStack = backStack,
-            onBack = closeInspector,
-            sceneStrategies = listOf(rememberSupportingPaneSceneStrategy<NavKey>()),
+            onBack = { if (backStack.lastOrNull() == Editor) closeEditor() else closeInspector() },
+            sceneStrategies = sceneStrategies,
             entryProvider = entryProvider {
                 entry<Workshop>(metadata = SupportingPaneSceneStrategy.mainPane()) {
                     LibraryScreen(state, importFile, onView = {
@@ -96,10 +133,27 @@ fun TavernForgeApp(viewModel: InspectionViewModel) {
                     InspectorScreen(state, importFile, closeInspector, onClear = { protectDraft {
                         viewModel.clear(); closeInspector()
                     } }, onSave = viewModel::saveDraft, onRename = viewModel::renameProject,
-                        onDuplicate = viewModel::duplicateProject, onDelete = viewModel::deleteProject)
+                        onDuplicate = viewModel::duplicateProject, onDelete = viewModel::deleteProject,
+                        onEdit = { if (viewModel.beginEditing()) backStack.add(Editor) }, onExport = viewModel::prepareExport)
                 }
+                entry<Editor> { JsonEditorScreen(state, viewModel, closeEditor) }
             },
         )
+    }
+    state.exportPreview?.takeUnless { it.pickerLaunched }?.let { preview ->
+        AlertDialog(onDismissRequest = viewModel::cancelExportPreview,
+            title = { Text(stringResource(R.string.export_review_title)) },
+            text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.export_review_body, preview.revision, formatLabel(preview.sourceFormat),
+                    pluralStringResource(R.plurals.byte_size, preview.sizeBytes, preview.sizeBytes)))
+                Text(stringResource(if (preview.formattingChanged) R.string.export_formatting_changed else R.string.export_formatting_original))
+            } },
+            confirmButton = { TextButton(onClick = {
+                viewModel.confirmExport()?.let { ready ->
+                    try { exportLauncher.launch(ready.fileName) } catch (_: RuntimeException) { viewModel.exportLauncherFailed() }
+                }
+            }) { Text(stringResource(R.string.choose_export_destination)) } },
+            dismissButton = { TextButton(onClick = viewModel::cancelExportPreview) { Text(stringResource(R.string.cancel)) } })
     }
     if (pendingReplacement != null) {
         AlertDialog(onDismissRequest = { pendingReplacement = null },
@@ -124,6 +178,8 @@ private fun InspectorScreen(
     onRename: (String) -> Unit,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
+    onEdit: () -> Unit,
+    onExport: () -> Unit,
 ) {
     var renameOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
     var deleteOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
@@ -172,6 +228,7 @@ private fun InspectorScreen(
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (state.selectedProject == null) {
                             Text(stringResource(if (summary.canSaveDraft) R.string.unsaved_note else R.string.cannot_save_malformed))
+                            if (summary.canSaveDraft) Text(stringResource(R.string.export_requires_save), style = MaterialTheme.typography.bodySmall)
                             if (summary.canSaveDraft && summary.status != InspectionStatus.VALID) {
                                 Text(stringResource(R.string.save_invalid_note))
                             }
@@ -179,6 +236,12 @@ private fun InspectorScreen(
                                 modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.save_draft)) }
                         } else {
                             Text(stringResource(R.string.saved_note))
+                            Text(stringResource(R.string.edit_revision, state.documentRevision))
+                            Button(onClick = onEdit, enabled = state.canEdit && !state.busy,
+                                modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.edit_content)) }
+                            OutlinedButton(onClick = onExport, enabled = state.canExport && !state.busy,
+                                modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.export_json)) }
+                            if (!state.canExport) Text(stringResource(R.string.export_validation_blocked), style = MaterialTheme.typography.bodySmall)
                             OutlinedButton(onClick = { title = state.selectedProject.title; renameOpen = true },
                                 enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.rename_project)) }
                             OutlinedButton(onClick = onDuplicate, enabled = !state.busy,
@@ -253,7 +316,7 @@ private fun InspectorScreen(
 }
 
 @Composable
-private fun DiagnosticCard(issue: Diagnostic) {
+internal fun DiagnosticCard(issue: Diagnostic) {
     val color = if (issue.severity == Severity.ERROR) MaterialTheme.colorScheme.errorContainer
         else MaterialTheme.colorScheme.secondaryContainer
     Card(colors = CardDefaults.cardColors(containerColor = color)) {

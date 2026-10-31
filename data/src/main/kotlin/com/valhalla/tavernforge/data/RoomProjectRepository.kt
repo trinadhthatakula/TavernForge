@@ -4,7 +4,11 @@ import com.valhalla.tavernforge.core.model.ProjectSummary
 import com.valhalla.tavernforge.core.model.SourceEnvelope
 import com.valhalla.tavernforge.core.model.StoredProject
 import com.valhalla.tavernforge.format.CharacterCardEngine
+import com.valhalla.tavernforge.format.CharacterDocument
+import com.valhalla.tavernforge.format.ExportResult
+import com.valhalla.tavernforge.format.JsonPatch
 import com.valhalla.tavernforge.format.ParseResult
+import com.valhalla.tavernforge.format.PatchResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -96,6 +100,43 @@ class RoomProjectRepository(
         loadRecord(find(id))
     }
 
+    override suspend fun applyEdits(id: String, expectedRevision: Long, operations: List<JsonPatch>): StoredProject = locked {
+        ensureRecovered()
+        val old = find(id)
+        if (old.documentRevision != expectedRevision) revisionConflict()
+        val (stored, document) = readRecord(old)
+        if (!document.isSupportedFormat) {
+            throw ProjectStorageException(ProjectStorageError.INVALID_INPUT, "Editing this source format is not supported. Its original has been retained.")
+        }
+        if (operations.isEmpty()) return@locked stored
+        val patched = (engine.patch(document, expectedRevision, operations) as? PatchResult.Success)?.document
+            ?: throw ProjectStorageException(ProjectStorageError.INVALID_INPUT, "The changes could not be applied within the JSON and source-format rules.")
+        val snapshot = engine.snapshot(patched) as? ExportResult.Success
+            ?: throw ProjectStorageException(ProjectStorageError.INVALID_INPUT, "The edited draft could not be stored within the JSON limits.")
+        val current = SourceEnvelope(snapshot.bytes, old.mediaType)
+        val summary = old.summary.copy(isDraft = !engine.validate(patched).isValid,
+            updatedAtEpochMillis = maxOf(clock().coerceAtLeast(0), old.summary.updatedAtEpochMillis))
+        currentCoroutineContext().ensureActive()
+        // Finalize bytes before the conditional DB mutation. A late failure may be ambiguous,
+        // so cleanup must re-read every original and current reference before pruning anything.
+        withContext(NonCancellable) {
+            try {
+                val key = fileOperation { files.ensureSource(current) }
+                if (key != "${current.sha256}.json") corrupt("The edited snapshot reference does not match its bytes.")
+                val count = databaseOperation {
+                    index.updateContent(id, expectedRevision, key, current.sha256, current.sizeBytes,
+                        summary.isDraft, summary.updatedAtEpochMillis)
+                }
+                if (count != 1) revisionConflict()
+                cleanup(strict = false)
+                StoredProject(summary, stored.source, current, patched.revision)
+            } catch (failure: Exception) {
+                cleanup(strict = false)
+                throw failure
+            }
+        }
+    }
+
     override suspend fun rename(id: String, title: String) = locked {
         val normalized = title.trim()
         if (normalized.isBlank() || normalized.length > MAX_TITLE_CHARS) {
@@ -140,18 +181,29 @@ class RoomProjectRepository(
         }
     }
 
-    private suspend fun loadRecord(record: ProjectRecord): StoredProject {
-        if (record.documentRevision != 0L) corrupt("This stored project revision is not supported.")
-        val source = fileOperation {
+    private suspend fun loadRecord(record: ProjectRecord): StoredProject = readRecord(record).first
+
+    private suspend fun readRecord(record: ProjectRecord): Pair<StoredProject, CharacterDocument> {
+        if (record.documentRevision < 0L || record.mediaType.length > MAX_MEDIA_TYPE_CHARS) {
+            corrupt("The stored revision or source metadata is invalid. Its files have been retained.")
+        }
+        val originalBytes = fileOperation {
             files.read(record.sourceFileKey, record.summary.sourceSha256, record.summary.sourceSizeBytes)
         }
-        val parsed = engine.parse(source.bytes()) as? ParseResult.Success
-            ?: corrupt("The stored JSON cannot be read safely. Its source has been retained.")
-        if (parsed.document.sourceFormat != record.summary.sourceFormat || parsed.document.specVersion != record.summary.specVersion) {
+        val source = if (originalBytes.mediaType == record.mediaType) originalBytes
+            else SourceEnvelope(originalBytes.bytes(), record.mediaType)
+        val current = if (record.currentFileKey == record.sourceFileKey &&
+            record.currentSha256 == record.summary.sourceSha256 && record.currentSizeBytes == record.summary.sourceSizeBytes) source
+        else {
+            val bytes = fileOperation { files.read(record.currentFileKey, record.currentSha256, record.currentSizeBytes) }
+            if (bytes.mediaType == record.mediaType) bytes else SourceEnvelope(bytes.bytes(), record.mediaType)
+        }
+        val restored = engine.restore(source, current, record.documentRevision) as? ParseResult.Success
+            ?: corrupt("The stored JSON snapshots cannot be restored safely. Their files have been retained.")
+        if (restored.document.sourceFormat != record.summary.sourceFormat || restored.document.specVersion != record.summary.specVersion) {
             corrupt("The stored source and project format metadata do not match. Its source has been retained.")
         }
-        return StoredProject(record.summary,
-            if (source.mediaType == record.mediaType) source else SourceEnvelope(source.bytes(), record.mediaType))
+        return StoredProject(record.summary, source, current, record.documentRevision) to restored.document
     }
 
     private suspend fun allocateId(): String {
@@ -174,7 +226,7 @@ class RoomProjectRepository(
 
     private suspend fun cleanup(strict: Boolean) {
         val referenced = try {
-            databaseOperation { index.all() }.mapTo(mutableSetOf()) { it.sourceFileKey }
+            databaseOperation { index.all() }.flatMapTo(mutableSetOf()) { listOf(it.sourceFileKey, it.currentFileKey) }
         } catch (failure: Exception) {
             if (failure is CancellationException || strict) throw failure
             // Never infer a reference set from an incomplete or failed database read.
@@ -213,6 +265,8 @@ class RoomProjectRepository(
     }
 
     private fun notFound(): Nothing = throw ProjectStorageException(ProjectStorageError.NOT_FOUND, "This saved project is no longer available.")
+    private fun revisionConflict(): Nothing = throw ProjectStorageException(ProjectStorageError.REVISION_CONFLICT,
+        "This project changed since editing began. Reopen its latest revision before saving changes.")
     private fun corrupt(message: String): Nothing = throw ProjectStorageException(ProjectStorageError.CORRUPT_SOURCE, message)
 
     companion object {

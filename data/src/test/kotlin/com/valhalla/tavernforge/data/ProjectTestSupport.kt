@@ -26,8 +26,11 @@ internal class FaultIndex : ProjectIndex {
     var afterInsert: suspend (ProjectRecord) -> Unit = {}
     var beforeRename: suspend () -> Unit = {}
     var beforeDelete: suspend () -> Unit = {}
+    var beforeUpdateContent: suspend () -> Unit = {}
+    var afterUpdateContent: suspend () -> Unit = {}
     var allCalls = 0
     var insertCalls = 0
+    var updateContentCalls = 0
 
     private fun ordered() = records.values.sortedWith(compareByDescending<ProjectRecord> { it.summary.updatedAtEpochMillis }.thenBy { it.summary.id })
     private fun emit() { changes.value = ordered() }
@@ -54,6 +57,31 @@ internal class FaultIndex : ProjectIndex {
         val deleted = records.remove(id) != null
         emit()
         return if (deleted) 1 else 0
+    }
+
+    override suspend fun updateContent(
+        id: String,
+        expectedRevision: Long,
+        currentFileKey: String,
+        currentSha256: String,
+        currentSizeBytes: Int,
+        isDraft: Boolean,
+        updatedAtEpochMillis: Long,
+    ): Int {
+        updateContentCalls++
+        beforeUpdateContent()
+        val old = records[id] ?: return 0
+        if (old.documentRevision != expectedRevision) return 0
+        records[id] = old.copy(
+            summary = old.summary.copy(isDraft = isDraft, updatedAtEpochMillis = updatedAtEpochMillis),
+            documentRevision = expectedRevision + 1,
+            currentFileKey = currentFileKey,
+            currentSha256 = currentSha256,
+            currentSizeBytes = currentSizeBytes,
+        )
+        emit()
+        afterUpdateContent()
+        return 1
     }
 }
 

@@ -9,6 +9,7 @@ import com.valhalla.tavernforge.data.ProjectRepository
 import com.valhalla.tavernforge.data.ProjectStorageError
 import com.valhalla.tavernforge.data.ProjectStorageException
 import com.valhalla.tavernforge.format.CharacterCardEngine
+import com.valhalla.tavernforge.format.JsonPatch
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -267,6 +268,8 @@ class ProjectLibraryViewModelTest {
             publish()
             return summary
         }
+        override suspend fun applyEdits(id: String, expectedRevision: Long, operations: List<JsonPatch>): StoredProject =
+            throw UnsupportedOperationException("Editing is covered by the editor repository fake")
         override suspend fun delete(id: String) { checkFailure(); documents.remove(id); publish() }
     }
 }

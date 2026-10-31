@@ -4,6 +4,8 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
+The user has authorized autonomous completion of the full planned app, with secrets excluded from Git/logs and progress documented. Existing AVDs are authorized for testing. See the [autonomous execution plan](planning/AUTONOMOUS_EXECUTION.md); the supervisor continues through the remaining increments without waiting for user supervision.
+
 **Next increment in progress:** [saved JSON editing and strict export](planning/JSON_EDIT_EXPORT.md), internal version 0.4.0. The user asked to continue after the library/security integration. Scope: preserve immutable imported originals, persist current snapshots with revision conflicts and a non-destructive Room migration, expose explicit field/value edits and same-format export through the system picker. No dependency or format-version conversion is planned. The 0.3 evidence below remains the last completed build until new checks pass.
 
 **Implemented and verified locally and on GitHub:** the [local JSON project library](planning/PROJECT_LIBRARY.md), the first M2 persistence increment. Room 3/managed files, library UI and independent tests are integrated with all six user-approved Dependabot PRs. Version **0.3.0-internal** passes **134 JVM tests**, **six Room tests on the physical device**, and **both Android lints**; the upgraded isolated probe passes its three tests. The APK is installed, and a V3 source saved through the UI reopens after force-stop/restart and removal of its temporary Downloads file. Hosted build, CodeQL, dependency submission/review and APK attestation have passed; details below.

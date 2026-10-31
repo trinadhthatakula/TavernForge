@@ -2,7 +2,9 @@ package com.valhalla.tavernforge
 
 import com.valhalla.tavernforge.core.model.Diagnostic
 import com.valhalla.tavernforge.core.model.SourceFormat
+import com.valhalla.tavernforge.core.model.SourceEnvelope
 import com.valhalla.tavernforge.format.CharacterCardEngine
+import com.valhalla.tavernforge.format.CharacterDocument
 import com.valhalla.tavernforge.format.ParseResult
 
 enum class InspectionStatus { VALID, NEEDS_REVIEW, UNSUPPORTED }
@@ -56,5 +58,17 @@ internal fun inspectJson(engine: CharacterCardEngine, fileName: String, bytes: B
             canSaveDraft = false,
         )
     }
+
+internal fun summarizeDocument(engine: CharacterCardEngine, fileName: String, document: CharacterDocument,
+    current: SourceEnvelope): InspectionSummary {
+    val report = engine.validate(document)
+    return InspectionSummary(fileName, document.displayName?.preview(), document.sourceFormat,
+        document.specVersion?.preview(), document.loreEntryCount, current.sizeBytes, current.sha256, report.issues,
+        when {
+            !document.isSupportedFormat -> InspectionStatus.UNSUPPORTED
+            report.isValid -> InspectionStatus.VALID
+            else -> InspectionStatus.NEEDS_REVIEW
+        }, true)
+}
 
 private fun String.preview(): String = if (length > 240) take(239) + "…" else this

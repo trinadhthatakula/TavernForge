@@ -13,7 +13,7 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 
 /**
- * Immutable, content-addressed originals in one app-private directory. All callers must use the
+ * Immutable, content-addressed originals and current snapshots in one app-private directory. All callers must use the
  * repository writer lock. Names supplied by document providers are never used as filesystem paths.
  */
 class ManagedJsonFiles(root: File, private val limits: JsonLimits = JsonLimits()) : ProjectFileStore {

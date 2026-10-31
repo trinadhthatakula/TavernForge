@@ -4,6 +4,8 @@ Baseline: [TavernForge kickoff charter](../TavernForge_Project_Kickoff.html), re
 
 ## Current phase
 
+**Next increment in progress:** [saved JSON editing and strict export](planning/JSON_EDIT_EXPORT.md), internal version 0.4.0. The user asked to continue after the library/security integration. Scope: preserve immutable imported originals, persist current snapshots with revision conflicts and a non-destructive Room migration, expose explicit field/value edits and same-format export through the system picker. No dependency or format-version conversion is planned. The 0.3 evidence below remains the last completed build until new checks pass.
+
 **Implemented and verified locally and on GitHub:** the [local JSON project library](planning/PROJECT_LIBRARY.md), the first M2 persistence increment. Room 3/managed files, library UI and independent tests are integrated with all six user-approved Dependabot PRs. Version **0.3.0-internal** passes **134 JVM tests**, **six Room tests on the physical device**, and **both Android lints**; the upgraded isolated probe passes its three tests. The APK is installed, and a V3 source saved through the UI reopens after force-stop/restart and removal of its temporary Downloads file. Hosted build, CodeQL, dependency submission/review and APK attestation have passed; details below.
 
 The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2 CharacterBook, standalone V3 lorebook, and native SillyTavern World Info. The inspector selects the detected format's validation rules and shows its version and lore-entry count. Engine edits and strict exports retain the source kind, unknown data, and number lexemes. The final offline build passes **102 JVM tests** and Android lint; the toolchain is unchanged. The user subsequently authorized public repository access and Dependabot. This is an internal JSON inspector, not the full MVP or a certification of SillyTavern interoperability.
@@ -21,6 +23,8 @@ The JSON compatibility update is implemented for character **V1/V2/V3**, bare V2
 - Root Gradle wrapper, pinned version catalog and dependency locks; [CI workflow](../.github/workflows/android.yml) with tests, fixture audit, APK build, and seven-day artifacts.
 
 ## Agent assignments and results
+
+Current ownership: `edit_persistence` owns format/data production sources and project model; `edit_ui` owns app UI/ViewModel/writer and app tests; `edit_tests` owns independent format/data tests and migration instrumentation; supervisor owns integration, status, all Gradle execution, CI and device deployment. See [scope and acceptance](planning/JSON_EDIT_EXPORT.md). Earlier completed assignments follow.
 
 | Owner | Scope | Result |
 | --- | --- | --- |

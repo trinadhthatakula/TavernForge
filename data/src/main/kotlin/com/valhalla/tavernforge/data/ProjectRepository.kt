@@ -10,7 +10,11 @@ import com.valhalla.tavernforge.core.model.ProjectMetadata
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-interface ProjectRepository : CompositionRepository {
+interface ProjectRepository : CompositionRepository, com.valhalla.tavernforge.data.archive.LibraryArchiveGateway {
+    override suspend fun <T> withArchiveSnapshot(action: suspend (com.valhalla.tavernforge.data.archive.LibraryArchiveSnapshot) -> T): T =
+        throw UnsupportedOperationException("Archive snapshots are unavailable in this repository.")
+    override suspend fun restoreArchive(archive: com.valhalla.tavernforge.data.archive.VerifiedLibraryArchive): com.valhalla.tavernforge.data.archive.ArchiveRestoreResult =
+        throw UnsupportedOperationException("Archive restoration is unavailable in this repository.")
     fun observeProjects(): Flow<List<ProjectSummary>>
     fun observeLibrary(query: LibraryQuery = LibraryQuery()): Flow<List<LibraryEntry>> = observeProjects().map { filterLibrary(it, emptyList(), query) }
     suspend fun projectMetadata(id: String): ProjectMetadata = ProjectMetadata(id, 0, emptyList())

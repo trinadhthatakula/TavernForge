@@ -41,6 +41,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import com.valhalla.tavernforge.data.archive.*
 
 /**
  * Coordinates immutable managed source files with an atomic metadata index.
@@ -64,6 +65,136 @@ class RoomProjectRepository(
     private val png = PngCardEngine(cards = engine)
     private val embedding = LorebookEmbeddingEngine(engine)
     private var recovered = false
+
+    override suspend fun <T> withArchiveSnapshot(action: suspend (LibraryArchiveSnapshot) -> T): T = locked {
+        ensureRecovered()
+        val records = databaseOperation { index.all() }
+        val artwork = databaseOperation { compositions().allArtwork() }
+        val readers = mutableMapOf<ArchiveBlobRef, () -> ByteArray>()
+        val projects = records.map { record ->
+            readRecord(record)
+            val original = ArchiveBlobRef(record.summary.sourceSha256, record.summary.sourceSizeBytes)
+            val current = ArchiveBlobRef(record.currentSha256, record.currentSizeBytes)
+            readers[original] = { fileOperation { files.read(record.sourceFileKey, original.sha256, original.sizeBytes).bytes() } }
+            readers[current] = { fileOperation { files.read(record.currentFileKey, current.sha256, current.sizeBytes).bytes() } }
+            ArchiveProject(record.summary, record.mediaType, record.documentRevision, original, current)
+        }
+        val assets = artwork.map { record ->
+            readArtwork(record)
+            val ref = ArchiveBlobRef(record.summary.sha256, record.summary.sizeBytes)
+            readers[ref] = { fileOperation { assetStore().read(record.fileKey, ref.sha256, ref.sizeBytes).bytes() } }
+            ArchiveArtwork(record.summary, ref)
+        }
+        val compositions = records.mapNotNull { record -> databaseOperation { compositions().composition(record.summary.id) } }
+        val links = records.flatMap { record -> databaseOperation { compositions().links(record.summary.id) } }
+        val metadata = records.mapNotNull { record -> metadataIndex?.let { databaseOperation { it.find(record.summary.id) } } }
+        val manifest = LibraryArchiveManifest(projects, assets, compositions, links, metadata, clock().coerceAtLeast(0))
+        ArchiveManifestCodec.validate(manifest, ArchiveLimits())
+        // Reentrant repository mutations are prohibited while the callback owns this snapshot.
+        val active = java.util.concurrent.atomic.AtomicBoolean(true)
+        try {
+            action(LibraryArchiveSnapshot(manifest) { reference ->
+                if (!active.get()) throw ArchiveException(ArchiveError.CLOSED)
+                currentCoroutineContext().ensureActive()
+                readers[reference]?.invoke() ?: throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+            })
+        } finally { active.set(false) }
+    }
+
+    override suspend fun restoreArchive(archive: VerifiedLibraryArchive): ArchiveRestoreResult = locked {
+        ensureRecovered()
+        val manifest = archive.manifest
+        ArchiveManifestCodec.validate(manifest, ArchiveLimits())
+        val roles = manifest.projects.associate { it.summary.id to it.summary.sourceFormat }
+        if (manifest.compositions.any { roles[it.characterId] !in CHARACTER_FORMATS } ||
+            manifest.links.any { roles[it.characterId] !in CHARACTER_FORMATS || roles[it.lorebookId] !in LORE_FORMATS })
+            throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+        val composed = compositions()
+        val reserved = mutableSetOf<String>()
+        suspend fun freshId(): String {
+            repeat(32) {
+                val id = newId()
+                if (PROJECT_ID.matches(id) && id !in reserved && databaseOperation { index.find(id) } == null &&
+                    databaseOperation { composed.findArtwork(id) } == null) {
+                    reserved += id
+                    return id
+                }
+            }
+            throw ArchiveException(ArchiveError.IO_FAILURE)
+        }
+        val projectIds = mutableMapOf<String, String>()
+        val artworkIds = mutableMapOf<String, String>()
+        manifest.projects.forEach { projectIds[it.summary.id] = freshId() }
+        manifest.artwork.forEach { artworkIds[it.summary.id] = freshId() }
+        val projectRecords = mutableListOf<ProjectRecord>()
+        val assetRecords = mutableMapOf<String, ArtworkRecord>()
+        currentCoroutineContext().ensureActive()
+        archive.consume()
+        try {
+            for (project in manifest.projects) {
+                currentCoroutineContext().ensureActive()
+                val original = SourceEnvelope(archive.readBlob(project.original), project.mediaType)
+                val current = if (project.current == project.original) original else SourceEnvelope(archive.readBlob(project.current), project.mediaType)
+                val doc = (engine.restore(original, current, project.documentRevision) as? ParseResult.Success)?.document
+                    ?: throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+                if (doc.sourceFormat != project.summary.sourceFormat || doc.specVersion != project.summary.specVersion ||
+                    project.summary.isDraft == engine.validate(doc).isValid) throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+                val originalKey = fileOperation { files.ensureSource(original) }
+                val currentKey = fileOperation { files.ensureSource(current) }
+                if (originalKey != "${original.sha256}.json" || currentKey != "${current.sha256}.json")
+                    throw ArchiveException(ArchiveError.HASH_MISMATCH)
+                projectRecords += ProjectRecord(project.summary.copy(id = projectIds.getValue(project.summary.id)), originalKey,
+                    project.mediaType, project.documentRevision, currentKey, current.sha256, current.sizeBytes)
+            }
+            val projectsById = manifest.projects.associateBy { it.summary.id }
+            val provenance = manifest.compositions.filter { it.sourcePngId != null }.groupBy { it.sourcePngId }
+            for (asset in manifest.artwork) {
+                currentCoroutineContext().ensureActive()
+                val bytes = archive.readBlob(asset.blob)
+                val info = inspectArtwork(bytes)
+                val old = asset.summary
+                if (info.mediaType != old.mediaType || info.width != old.width || info.height != old.height || info.animated != old.isAnimated)
+                    throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+                provenance[old.id]?.let { references ->
+                    if (info.mediaType != "image/png") throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+                    val container = inspectPng(bytes)
+                    references.forEach { reference ->
+                        val selected = png.select(container, reference.sourceCandidateId) as? PngSelectionResult.Selected
+                        if (selected?.document?.source?.sha256 != projectsById.getValue(reference.characterId).original.sha256)
+                            throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+                    }
+                }
+                val source = SourceEnvelope(bytes, old.mediaType)
+                val key = fileOperation { assetStore().ensureSource(source) }
+                val expectedKey = "${source.sha256}.${if (source.mediaType == "image/jpeg") "jpg" else "png"}"
+                if (key != expectedKey) throw ArchiveException(ArchiveError.HASH_MISMATCH)
+                assetRecords[old.id] = ArtworkRecord(old.copy(id = artworkIds.getValue(old.id),
+                    sourceArtworkId = old.sourceArtworkId?.let(artworkIds::getValue)), key)
+            }
+            val ordered = mutableListOf<ArtworkRecord>()
+            val pending = manifest.artwork.toMutableList()
+            val added = mutableSetOf<String>()
+            while (pending.isNotEmpty()) {
+                val ready = pending.filter { it.summary.sourceArtworkId == null || it.summary.sourceArtworkId in added }
+                if (ready.isEmpty()) throw ArchiveException(ArchiveError.INVALID_MANIFEST)
+                ready.forEach { ordered += assetRecords.getValue(it.summary.id); added += it.summary.id }
+                pending.removeAll(ready.toSet())
+            }
+            val batch = LibraryRestoreBatch(projectRecords, ordered,
+                manifest.compositions.map { it.copy(characterId = projectIds.getValue(it.characterId),
+                    artworkId = it.artworkId?.let(artworkIds::getValue), sourcePngId = it.sourcePngId?.let(artworkIds::getValue)) },
+                manifest.links.map { it.copy(characterId = projectIds.getValue(it.characterId), lorebookId = projectIds.getValue(it.lorebookId)) },
+                manifest.metadata.map { ProjectMetadata(projectIds.getValue(it.projectId), it.revision, it.tags) })
+            currentCoroutineContext().ensureActive()
+            // Cancellation remains effective until the bounded final Room transaction starts.
+            withContext(NonCancellable) { databaseOperation { composed.restoreArchiveBatch(batch) } }
+            ArchiveRestoreResult(projectIds.toMap(), artworkIds.toMap())
+        } catch (failure: Exception) {
+            // A commit may succeed before reporting a failure. Prune only from actual references.
+            withContext(NonCancellable) { cleanup(strict = false) }
+            throw failure
+        }
+    }
 
     override fun observeProjects(): Flow<List<ProjectSummary>> = flow {
         recover()

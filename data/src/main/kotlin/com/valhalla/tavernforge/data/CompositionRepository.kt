@@ -32,7 +32,16 @@ data class ArtworkRecord(val summary: ArtworkSummary, val fileKey: String)
 data class CompositionRecord(val characterId: String, val revision: Long = 0, val artworkId: String? = null,
     val sourcePngId: String? = null, val sourceCandidateId: String? = null)
 data class LoreLinkRecord(val characterId: String, val lorebookId: String, val embeddedRevision: Long? = null, val embeddedSha256: String? = null)
+data class LibraryRestoreBatch(
+    val projects: List<ProjectRecord>,
+    val artwork: List<ArtworkRecord>,
+    val compositions: List<CompositionRecord>,
+    val links: List<LoreLinkRecord>,
+    val metadata: List<com.valhalla.tavernforge.core.model.ProjectMetadata>,
+)
 interface CompositionIndex {
+    suspend fun restoreArchiveBatch(batch: LibraryRestoreBatch): Unit =
+        throw UnsupportedOperationException("Atomic archive restoration is unavailable.")
     fun observeArtwork(): Flow<List<ArtworkRecord>>
     suspend fun allArtwork(): List<ArtworkRecord>
     suspend fun findArtwork(id: String): ArtworkRecord?

@@ -59,6 +59,8 @@ interface CompositionDao {
     @Query("SELECT * FROM projects WHERE id = :id") suspend fun project(id: String): ProjectEntity?
     @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertProject(project: ProjectEntity)
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun ensureComposition(composition: CompositionEntity)
+    @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertComposition(composition: CompositionEntity)
+    @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertMetadata(metadata: ProjectMetadataEntity)
     @Insert(onConflict = OnConflictStrategy.ABORT) suspend fun insertLink(link: LoreLinkEntity)
     @Query("DELETE FROM lore_links WHERE characterId = :id AND lorebookId = :loreId") suspend fun removeLink(id: String, loreId: String)
     @Query("UPDATE project_compositions SET artworkId = :artworkId, revision = revision + 1 WHERE characterId = :id AND revision = :expectedRevision")
@@ -74,6 +76,15 @@ interface CompositionDao {
 
     @Transaction suspend fun insertPng(project: ProjectEntity, artwork: ArtworkEntity, composition: CompositionEntity) {
         insertArtwork(artwork); insertProject(project); ensureComposition(composition)
+    }
+    @Transaction suspend fun restoreArchiveBatch(projects: List<ProjectEntity>, artwork: List<ArtworkEntity>,
+        compositions: List<CompositionEntity>, links: List<LoreLinkEntity>, metadata: List<ProjectMetadataEntity>) {
+        // Assets are topologically ordered so derived images retain their originals.
+        artwork.forEach { insertArtwork(it) }
+        projects.forEach { insertProject(it) }
+        compositions.forEach { insertComposition(it) }
+        links.forEach { insertLink(it) }
+        metadata.forEach { insertMetadata(it) }
     }
     @Transaction suspend fun setArtwork(id: String, expectedRevision: Long, artworkId: String?) {
         val old = checkedComposition(id, expectedRevision)
@@ -117,6 +128,10 @@ interface CompositionDao {
 private fun conflict(): Nothing = throw ProjectStorageException(ProjectStorageError.REVISION_CONFLICT, "Character, lorebook or associations changed. Reopen and review the latest revisions.")
 
 class RoomCompositionIndex(private val dao: CompositionDao) : CompositionIndex {
+    override suspend fun restoreArchiveBatch(batch: LibraryRestoreBatch) = dao.restoreArchiveBatch(
+        batch.projects.map { it.entity() }, batch.artwork.map { it.entity() }, batch.compositions.map { it.entity() },
+        batch.links.map { LoreLinkEntity(it.characterId, it.lorebookId, it.embeddedRevision, it.embeddedSha256) },
+        batch.metadata.map { ProjectMetadataEntity(it.projectId, it.revision, encodeTags(it.tags)) })
     override fun observeArtwork(): Flow<List<ArtworkRecord>> = dao.observeArtwork().map { it.map(ArtworkEntity::record) }
     override suspend fun allArtwork() = dao.allArtwork().map(ArtworkEntity::record)
     override suspend fun findArtwork(id: String) = dao.artwork(id)?.record()

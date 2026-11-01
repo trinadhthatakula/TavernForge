@@ -3,11 +3,8 @@
     <string name="app_name">TavernForge</string>
     <string name="internal_build">INTERNAL TEST BUILD</string>
     <string name="home_title">A world of your own.</string>
-    <string name="home_subtitle">Keep your characters and worlds close. Import a JSON file or create a character or lorebook in your local library.</string>
     <string name="import_json">Inspect JSON</string>
     <string name="import_another">Inspect another file</string>
-    <string name="privacy_label">Local inspection · No account needed</string>
-    <string name="scope_body">Create, edit and export character V1, V2 and V3 JSON, V2 and V3 lorebooks, and native SillyTavern World Info. Manual authoring, PNG artwork and local backups work offline. Gemini is optional and requires your own key and request approval.</string>
     <string name="session_note">Unsaved inspection stays in memory. Save a draft to reopen it after the app restarts.</string>
     <string name="inspect_title">File inspection</string>
     <string name="view_results">View inspection</string>
@@ -50,7 +47,6 @@
     <string name="failure_large">This file exceeds the 4 MiB inspection limit. Choose a smaller JSON file.</string>
     <string name="failure_permission">Access to the file was denied. Choose it again using the system picker.</string>
     <string name="failure_read">The document provider could not read this file. Try another local copy.</string>
-    <string name="library_title">Your library</string>
     <string name="search_projects">Search titles, filenames and local tags</string>
     <string name="sort_recent">Recent</string>
     <string name="sort_title">Title A–Z</string>
@@ -100,7 +96,6 @@
         <item quantity="one">%1$d project</item>
         <item quantity="other">%1$d projects</item>
     </plurals>
-    <string name="edit_content">Edit saved JSON</string>
     <string name="close_editor">Close editor</string>
     <string name="edit_revision">Saved revision %1$d</string>
     <string name="editor_preservation">The original source stays intact. Apply explicit field changes, review validation, then save. Undo covers unsaved commands. A private recovery snapshot follows edits after a short delay; the last moments of typing may not yet be captured. Review recovered edits before saving.</string>
@@ -127,7 +122,6 @@
     <string name="apply_removal">Apply removal to draft</string>
     <string name="discard_value_input">Discard field input</string>
     <string name="advanced_json_value">Advanced: edit another JSON value</string>
-    <string name="edit_value">Edit value</string>
     <string name="named_entries_limit">Named controls show up to 100 lore entries and omit paths over 4096 characters. Omitted values remain unchanged. Shorter paths can be edited using Advanced.</string>
     <string name="draft_validation">Draft validation</string>
     <string name="first_issues_shown">The first 20 issues are shown here. Saving retains every field and the full validation still controls export.</string>

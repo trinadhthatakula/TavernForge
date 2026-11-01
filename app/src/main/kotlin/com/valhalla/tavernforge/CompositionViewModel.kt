@@ -20,6 +20,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import androidx.compose.ui.graphics.ImageBitmap
 
 data class PngImportPreview(val fileName: String, val container: PngContainer, val selectedCandidateId: String?, val needsChoice: Boolean)
 class JpegImportPreview(val fileName: String, val width: Int, val height: Int, bytes: ByteArray) {
@@ -29,6 +32,7 @@ class JpegImportPreview(val fileName: String, val width: Int, val height: Int, b
 data class CompositionExportPreview(val id: Long, val fileName: String, val revision: Long, val reviewItems: List<String>,
     val pickerReady: Boolean = false, val pickerLaunched: Boolean = false,
     val sourceFormat: SourceFormat = SourceFormat.UNKNOWN, val removedFormats: List<SourceFormat> = emptyList(),
+    val receiverGuidance: List<String> = emptyList(),
     val mediaType: String = "image/png", val originalArtwork: Boolean = false)
 data class EmbeddedBookPreview(val lorebookId: String, val name: String, val compositionRevision: Long, val plan: EmbeddingPlan)
 data class CompositionState(
@@ -64,6 +68,23 @@ class CompositionViewModel(
     private var exportPlan: PngExportPlan? = null
     private var exportBytes: ByteArray? = null
     private var exportId = 0L
+    private val coverMutex = Mutex()
+
+    /** Visible library cards request small previews; serialize reads to bound source-byte memory. */
+    suspend fun loadLibraryCover(projectId: String): ImageBitmap? = withContext(dispatcher) {
+        coverMutex.withLock {
+            try {
+                val artwork = repository.loadComposition(projectId).artwork ?: return@withLock null
+                val bytes = repository.loadArtwork(artwork.id).bytes()
+                decodeLibraryCover(bytes, artwork.mediaType == "image/jpeg")
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // A missing/corrupt preview must not hide the project or alter its original image.
+                null
+            }
+        }
+    }
 
     init {
         viewModelScope.launch {
@@ -200,17 +221,19 @@ class CompositionViewModel(
             val saved = repository.load(composition.characterId)
             val image = repository.loadArtwork(artwork.id)
             val container = withContext(dispatcher) { (png.inspect(image.bytes()) as? PngInspectionResult.Success)?.container }
-            val plan = withContext(dispatcher) {
+            val prepared = withContext(dispatcher) {
                 val doc = (cards.restore(saved.source, saved.currentSource, saved.documentRevision) as? ParseResult.Success)?.document
                     ?: return@withContext null
-                png.planExport(container ?: return@withContext null, doc)
+                png.planExport(container ?: return@withContext null, doc) to receiverExportGuidance(doc.sourceFormat, doc.displayName)
             }
+            val plan = prepared?.first
             when (plan) {
                 is PngExportPlanResult.Ready -> {
                     exportPlan = plan.plan
                     mutableState.value = mutableState.value.copy(exportPreview = CompositionExportPreview(++exportId,
                         exportFileName(saved.summary.sourceFileName).removeSuffix(".json") + ".png", saved.documentRevision, plan.plan.reviewItems,
-                        sourceFormat = saved.summary.sourceFormat, removedFormats = container?.candidates?.map { it.document?.sourceFormat ?: SourceFormat.UNKNOWN }.orEmpty()))
+                        sourceFormat = saved.summary.sourceFormat, receiverGuidance = prepared?.second.orEmpty(),
+                        removedFormats = container?.candidates?.map { it.document?.sourceFormat ?: SourceFormat.UNKNOWN }.orEmpty()))
                 }
                 is PngExportPlanResult.Failure -> mutableState.value = mutableState.value.copy(error = plan.issues.joinToString("\n") { it.message }.ifBlank { "This PNG cannot be exported safely." })
                 null -> mutableState.value = mutableState.value.copy(error = "Could not restore the character or artwork for export.")

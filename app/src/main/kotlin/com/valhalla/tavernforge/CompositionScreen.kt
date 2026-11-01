@@ -36,6 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.valhalla.tavernforge.core.model.ArtworkSummary
@@ -61,8 +64,9 @@ internal fun CompositionScreen(state: CompositionState, viewModel: CompositionVi
             Text("Artwork and lorebooks", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
             Text("Import a PNG card or PNG/JPEG artwork on its own, then associate saved artwork and lorebooks with a character.")
             if (state.working) LinearProgressIndicator(Modifier.fillMaxWidth())
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            state.notice?.let { Text(it) }
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
+            state.notice?.let { Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
             Button(onClick = { picker.launch(arrayOf("image/png", "image/jpeg")) }, enabled = !state.busy && !state.hasUnsavedImport) { Text("Choose PNG card or PNG/JPEG artwork") }
         }
         state.importPreview?.let { preview ->
@@ -129,10 +133,14 @@ internal fun CompositionScreen(state: CompositionState, viewModel: CompositionVi
                     Text(artwork.fileName, style = MaterialTheme.typography.titleMedium)
                     Text("${artwork.width} × ${artwork.height} · ${artwork.sizeBytes} bytes · ${if (artwork.mediaType == "image/jpeg") "JPEG" else "PNG"}")
                     if (artwork.sourceArtworkId != null) Text("Derived PNG; its original JPEG is retained.", style = MaterialTheme.typography.bodySmall)
-                    if (state.character != null) OutlinedButton(onClick = { viewModel.setArtwork(artwork.id) }, enabled = !state.busy) { Text("Use for this character") }
-                    TextButton(onClick = { viewModel.prepareArtworkExport(artwork.id) }, enabled = !state.busy) { Text("Export original bytes") }
-                    if (artwork.mediaType == "image/jpeg") TextButton(onClick = { viewModel.prepareJpegConversion(artwork.id) }, enabled = !state.busy) { Text("Review conversion to PNG") }
-                    TextButton(onClick = { deleteArtwork = artwork }, enabled = !state.busy) { Text("Delete artwork") }
+                    if (state.character != null) OutlinedButton(onClick = { viewModel.setArtwork(artwork.id) }, enabled = !state.busy,
+                        modifier = Modifier.semantics { contentDescription = "Use for this character: ${artwork.fileName}" }) { Text("Use for this character") }
+                    TextButton(onClick = { viewModel.prepareArtworkExport(artwork.id) }, enabled = !state.busy,
+                        modifier = Modifier.semantics { contentDescription = "Export original bytes: ${artwork.fileName}" }) { Text("Export original bytes") }
+                    if (artwork.mediaType == "image/jpeg") TextButton(onClick = { viewModel.prepareJpegConversion(artwork.id) }, enabled = !state.busy,
+                        modifier = Modifier.semantics { contentDescription = "Review conversion to PNG: ${artwork.fileName}" }) { Text("Review conversion to PNG") }
+                    TextButton(onClick = { deleteArtwork = artwork }, enabled = !state.busy,
+                        modifier = Modifier.semantics { contentDescription = "Delete artwork: ${artwork.fileName}" }) { Text("Delete artwork") }
                 }
             }
         }
@@ -147,11 +155,14 @@ internal fun CompositionScreen(state: CompositionState, viewModel: CompositionVi
                     Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(lorebook.title, style = MaterialTheme.typography.titleMedium)
                         Text(formatLabel(lorebook.sourceFormat))
-                        if (link == null) OutlinedButton(onClick = { viewModel.linkLorebook(lorebook.id) }, enabled = !state.busy) { Text("Link lorebook") }
+                        if (link == null) OutlinedButton(onClick = { viewModel.linkLorebook(lorebook.id) }, enabled = !state.busy,
+                            modifier = Modifier.semantics { contentDescription = "Link lorebook: ${lorebook.title}" }) { Text("Link lorebook") }
                         else {
                             Text("Linked revision ${link.documentRevision} · embedded snapshot ${link.embeddedRevision ?: "none"}")
-                            Button(onClick = { viewModel.prepareEmbedding(lorebook.id) }, enabled = !state.busy) { Text("Review embedding snapshot") }
-                            TextButton(onClick = { viewModel.linkLorebook(lorebook.id, remove = true) }, enabled = !state.busy) { Text("Unlink lorebook") }
+                            Button(onClick = { viewModel.prepareEmbedding(lorebook.id) }, enabled = !state.busy,
+                                modifier = Modifier.semantics { contentDescription = "Review embedding snapshot: ${lorebook.title}" }) { Text("Review embedding snapshot") }
+                            TextButton(onClick = { viewModel.linkLorebook(lorebook.id, remove = true) }, enabled = !state.busy,
+                                modifier = Modifier.semantics { contentDescription = "Unlink lorebook: ${lorebook.title}" }) { Text("Unlink lorebook") }
                         }
                     }
                 }
@@ -165,6 +176,7 @@ internal fun CompositionScreen(state: CompositionState, viewModel: CompositionVi
                 if (preview.originalArtwork) item { Text("Write the exact saved ${if (preview.mediaType == "image/jpeg") "JPEG" else "PNG"} bytes, including their original metadata. No re-encoding or character update is applied.") }
                 else {
                     item { Text("Export saved character revision ${preview.revision} as ${formatLabel(preview.sourceFormat)} metadata in a PNG. Image data and unrelated chunks are preserved.") }
+                    preview.receiverGuidance.forEach { guidance -> item { Text(guidance, style = MaterialTheme.typography.bodySmall) } }
                     if (preview.reviewItems.isEmpty()) item { Text("No existing card metadata needs replacement.") }
                     else item { Text("Replace ${preview.removedFormats.size} existing character-metadata record(s): ${removedFormatLabels}. The selected character version will be the exported card metadata.") }
                 }

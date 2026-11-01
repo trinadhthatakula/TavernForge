@@ -20,12 +20,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -48,12 +50,16 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -86,14 +92,15 @@ internal fun GenerationScreen(state: GenerationState, viewModel: GenerationViewM
             Text("Optional Gemini", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
             Text("Manual creation and imports work offline. Gemini sends only the reviewed request directly to Google with your own key.")
             if (state.working || state.keyWorking) LinearProgressIndicator(Modifier.fillMaxWidth())
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            state.notice?.let { Text(it) }
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
+            state.notice?.let { Text(it, modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) }
             if (state.working) TextButton(onClick = viewModel::cancelRequest) { Text("Cancel provider request") }
         }
         item {
             Card {
                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Key and permissions", style = MaterialTheme.typography.titleLarge)
+                    Text("Key and permissions", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
                     Text("Key status: ${state.credential.availability.name.lowercase()}")
                     EphemeralKeyInput(secretInput, { secretInput = it }, !state.keyWorking)
                     Button(onClick = { val key = secretInput.toCharArray(); secretInput = ""; viewModel.updateKey(key) },
@@ -112,7 +119,7 @@ internal fun GenerationScreen(state: GenerationState, viewModel: GenerationViewM
         }
         if (!state.hasDraft) {
             item {
-                Text("Models", style = MaterialTheme.typography.titleLarge)
+                Text("Models", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
                 OutlinedButton(onClick = { viewModel.prepareModels() }, enabled = state.editingAllowed && state.credential.available) { Text("Review model-list request") }
                 Text("Model listing is an authenticated metadata call. The response and reviewed capability evidence determine which models can be used.", style = MaterialTheme.typography.bodySmall)
             }
@@ -271,7 +278,18 @@ private fun Context.generationActivity(): Activity? {
 
 @Composable
 private fun PermissionToggle(label: String, checked: Boolean, enabled: Boolean = true, onChange: (Boolean) -> Unit) {
-    Column { Text(label); Switch(checked = checked, onCheckedChange = onChange, enabled = enabled) }
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f))
+        // The labelled row owns interaction and semantics, so keyboard and screen readers
+        // encounter one switch rather than an unlabelled switch beside separate text.
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+    }
 }
 
 @Composable

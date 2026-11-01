@@ -2,6 +2,8 @@ package com.valhalla.tavernforge
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,7 +30,7 @@ internal fun BackupScreen(state: BackupState, model: BackupViewModel, onClose: (
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip"), model::completeExport)
     val restorePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument(), model::completeRestore)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        item { TextButton(onClick = onClose, enabled = !state.busy) { Text("Back to library") } }
+        item { TextButton(onClick = onClose, enabled = !state.busy) { Text("Close backup") } }
         item { Text("Library backup", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() }) }
         item { Text("Keep a portable copy of saved projects, original and edited JSON, artwork, artwork associations, linked lorebooks and local tags. Backup and restore work offline.") }
         item { Text("API keys, provider request previews, unsaved edits and edit recovery files are excluded. The archive is not encrypted; choose a destination you trust.") }
@@ -47,7 +49,7 @@ internal fun BackupScreen(state: BackupState, model: BackupViewModel, onClose: (
     }
     state.review?.let { review ->
         AlertDialog(onDismissRequest = model::discardReview, title = { Text("Restore verified backup?") },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("${review.projects} projects · ${review.artwork} artwork files")
                 Text("${review.associations} artwork/composition records · ${review.loreLinks} lorebook links · ${review.taggedProjects} projects with local tags")
                 Text("Add these as new library copies. Existing projects and artwork remain intact. Imported content keeps its original format and validation state.")

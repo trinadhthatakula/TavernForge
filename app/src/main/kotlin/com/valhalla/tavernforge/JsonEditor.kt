@@ -143,6 +143,7 @@ data class ExportPreview(
     val sizeBytes: Int,
     val formattingChanged: Boolean,
     val pickerLaunched: Boolean = false,
+    val receiverGuidance: List<String> = emptyList(),
 )
 
 enum class ExportFailure { VALIDATION, WRITE, UNAVAILABLE }

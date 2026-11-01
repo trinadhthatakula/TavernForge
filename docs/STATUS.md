@@ -87,6 +87,10 @@ M0–M7 have a working internal implementation for the documented supported prof
 
 Before a broad community release: perform a user-entered-key Google smoke test with reviewed requests, receiver-application imports beyond the pinned PNG reader, broader TalkBack/hardware checks, signing/distribution setup and final identity/minimum-SDK review. APNG/CHARX/embedded-media and cross-version conversion are explicit unsupported scope, not silent transformations. Pending provider calls must never be fabricated or run with a repository key.
 
+## Dependency comparison follow-up
+
+The trusted dependency-review availability checker is repaired against the documented GitHub REST contract; all 22 focused tests and a live exact-commit readiness check pass. It previously invented row-count pagination for a non-paginated endpoint and could wait on stale query-specific results after valid snapshot submissions. The repair preserves all snapshot-warning, receipt and size checks; [reproduction and verification](testing/DEPENDENCY_COMPARISON_REPAIR.md) record the evidence. This CI-only follow-up does not change the installed app.
+
 ## Reference documents
 
 [Roadmap](planning/ROADMAP.md) · [architecture](planning/ARCHITECTURE.md) · [dependency evidence](planning/TECH_STACK.md) · [upstream format pins](planning/FORMATS.md) · [test strategy](testing/TEST_STRATEGY.md) · [design comparison](design-comparison.html) · [fixture provenance](../format/fixtures/README.md) · [isolated smoke evidence](build/COMPATIBILITY_SMOKE.md).

@@ -1,0 +1,67 @@
+{
+  "upstream_revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+  "upstream_parser_sha256": "b74541cd54bb3fe3ab39b3e040f6dba824b263ed9344e4dcf98363e4e148e07c",
+  "upstream_encoder_sha256": "bde45d94ca4750fbfd7979620547adb5b057e38000687af57f9dd0654f212904",
+  "upstream_package_lock_sha256": "5ee4095a82d2b326e30290480b33529553cba60d2f418bc086ed3c08d874d888",
+  "reference_package_lock_sha256": "28c18279dd8cd57202dc83108ed974fbef5618030696be65833952131190d45e",
+  "dependency_source": "Exact versions, tarball URLs and SRI integrities copied from pinned SillyTavern lock; no application dependencies changed",
+  "dependencies": {
+    "crc": {
+      "version": "4.3.2",
+      "resolved": "https://registry.npmjs.org/crc/-/crc-4.3.2.tgz",
+      "integrity": "sha512-uGDHf4KLLh2zsHa8D8hIQ1H/HtFQhyHrc0uhHBcoKGol/Xnb+MPYfUMw7cvON6ze/GUESTudKayDcJC5HnJv1A==",
+      "license": "MIT",
+      "engines": {
+        "node": ">=12"
+      },
+      "peerDependencies": {
+        "buffer": ">=6.0.3"
+      },
+      "peerDependenciesMeta": {
+        "buffer": {
+          "optional": true
+        }
+      }
+    },
+    "png-chunk-text": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/png-chunk-text/-/png-chunk-text-1.0.0.tgz",
+      "integrity": "sha512-DEROKU3SkkLGWNMzru3xPVgxyd48UGuMSZvioErCure6yhOc/pRH2ZV+SEn7nmaf7WNf3NdIpH+UTrRdKyq9Lw==",
+      "license": "MIT"
+    },
+    "png-chunks-extract": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/png-chunks-extract/-/png-chunks-extract-1.0.0.tgz",
+      "integrity": "sha512-ZiVwF5EJ0DNZyzAqld8BP1qyJBaGOFaq9zl579qfbkcmOwWLLO4I9L8i2O4j3HkI6/35i0nKG2n+dZplxiT89Q==",
+      "license": "MIT",
+      "dependencies": {
+        "crc-32": "^0.3.0"
+      }
+    },
+    "crc-32": {
+      "version": "0.3.0",
+      "resolved": "https://registry.npmjs.org/crc-32/-/crc-32-0.3.0.tgz",
+      "integrity": "sha512-kucVIjOmMc1f0tv53BJ/5WIX+MGLcKuoBhnGqQrgKJNqLByb/sVMWfW/Aw6hw0jgcqjJ2pi9E5y32zOIpaUlsA==",
+      "license": "Apache-2.0",
+      "engines": {
+        "node": ">=0.8"
+      }
+    }
+  },
+  "generator": "check.mjs --generate-upstream; original 1x1 RGBA [17,34,51,255] artwork and exact upstream write()",
+  "generator_node": "v26.13.0",
+  "fixtures": {
+    "png-synthetic-artwork.png": {
+      "sha256": "b3bf3cb00886adc5974a53a0beed0c7616747c0aba17af15c6686e97ec024f12",
+      "bytes": 147
+    },
+    "st-writer-v2.png": {
+      "sha256": "692190af979696631e0a3224b7c2c36b7c214387934f67f63c180ed6d2692651",
+      "bytes": 1118
+    },
+    "st-writer-v3.png": {
+      "sha256": "cfcd9dfa47702ffaef1f5d2e43f178437df0a6d9f2dd8cc44157ad863f311de1",
+      "bytes": 1198
+    }
+  }
+}

@@ -67,9 +67,11 @@ interface ProjectDao {
     suspend fun delete(id: String): Int
 }
 
-@Database(entities = [ProjectEntity::class], version = 2, exportSchema = true)
+@Database(entities = [ProjectEntity::class, ArtworkEntity::class, CompositionEntity::class, LoreLinkEntity::class, ProjectMetadataEntity::class], version = 4, exportSchema = true)
 abstract class ProjectDatabase : RoomDatabase() {
     abstract fun projects(): ProjectDao
+    abstract fun compositions(): CompositionDao
+    abstract fun libraryMetadata(): LibraryMetadataDao
 }
 
 class RoomProjectIndex(private val dao: ProjectDao) : ProjectIndex {
@@ -123,7 +125,7 @@ fun createProjectDatabase(context: Context, name: String = "projects.db"): Proje
     require(name.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,100}"))) { "Invalid database name" }
     // Room 3.0.3's context builder defaults to AndroidSQLiteDriver; no bundled driver is needed.
     return Room.databaseBuilder<ProjectDatabase>(context.applicationContext, name)
-        .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
         .setQueryCoroutineContext(Dispatchers.IO)
         .build()
 }
@@ -135,7 +137,10 @@ fun createProjectRepository(context: Context): ProjectRepository = applicationRe
     applicationRepository ?: run {
         val app = context.applicationContext
         val database = createProjectDatabase(app)
-        RoomProjectRepository(RoomProjectIndex(database.projects()), ManagedJsonFiles(File(app.filesDir, "project-sources")))
+        RoomProjectRepository(RoomProjectIndex(database.projects()), ManagedJsonFiles(File(app.filesDir, "project-sources")),
+            compositionIndex = RoomCompositionIndex(database.compositions()),
+            assetFiles = ManagedArtworkFiles(File(app.filesDir, "artwork-assets")),
+            metadataIndex = RoomLibraryMetadataIndex(database.libraryMetadata()))
             .also { applicationRepository = it }
     }
 }

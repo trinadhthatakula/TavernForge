@@ -9,9 +9,12 @@ local.properties
 *.iml
 .env
 .env.*
-!.env.example
 *.jks
 *.keystore
+*.p12
+*.pfx
+*.pem
+*.key
 *.hprof
 captures/
 .externalNativeBuild/

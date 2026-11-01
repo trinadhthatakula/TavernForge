@@ -22,6 +22,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -29,9 +33,12 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.valhalla.tavernforge.data.ProjectStorageError
+import com.valhalla.tavernforge.core.model.SourceFormat
+import com.valhalla.tavernforge.core.model.LibraryDraftFilter
 
 @Composable
 internal fun LibraryScreen(
@@ -42,7 +49,17 @@ internal fun LibraryScreen(
     onQuery: (String) -> Unit,
     onSort: (ProjectSort) -> Unit,
     onRetry: () -> Unit,
+    onCreate: () -> Unit,
+    onArtwork: () -> Unit,
+    onGenerate: () -> Unit,
+    onBackup: () -> Unit,
+    onFormatFilter: (SourceFormat) -> Unit,
+    onDraftFilter: (LibraryDraftFilter) -> Unit,
+    onTagFilter: (String) -> Unit,
+    onClearFilters: () -> Unit,
 ) {
+    var showFilters by rememberSaveable { mutableStateOf(false) }
+    val activeFilterCount = state.formatFilters.size + state.tagFilters.size + if (state.draftFilter != LibraryDraftFilter.ALL) 1 else 0
     LazyVerticalGrid(
         columns = GridCells.Adaptive(300.dp),
         modifier = Modifier.fillMaxSize(),
@@ -59,6 +76,10 @@ internal fun LibraryScreen(
                 Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Button(onClick = onImport, enabled = !state.busy) { Text(stringResource(R.string.import_json)) }
+                OutlinedButton(onClick = onCreate, enabled = !state.busy) { Text("Create manually") }
+                OutlinedButton(onClick = onArtwork, enabled = !state.busy) { Text("PNG cards and artwork") }
+                OutlinedButton(onClick = onGenerate, enabled = !state.busy) { Text("Optional Gemini and key settings") }
+                OutlinedButton(onClick = onBackup, enabled = !state.busy) { Text("Library backup and restore") }
                 Text(stringResource(R.string.privacy_label), style = MaterialTheme.typography.labelLarge)
                 LibraryFeedback(state)
             }
@@ -91,7 +112,32 @@ internal fun LibraryScreen(
                         label = { Text(stringResource(R.string.sort_recent)) })
                     FilterChip(selected = state.sort == ProjectSort.TITLE, onClick = { onSort(ProjectSort.TITLE) },
                         label = { Text(stringResource(R.string.sort_title)) })
+                    FilterChip(selected = state.sort == ProjectSort.OLDEST, onClick = { onSort(ProjectSort.OLDEST) }, label = { Text("Oldest first") })
                 }
+                TextButton(onClick = { showFilters = !showFilters }, modifier = Modifier.semantics {
+                    stateDescription = if (showFilters) "Expanded" else "Collapsed"
+                }) { Text("Filters ($activeFilterCount active) · ${if (showFilters) "Hide" else "Show"}") }
+                if (showFilters) {
+                    Text("Filter by source format", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SourceFormat.entries.forEach { format ->
+                            FilterChip(selected = format in state.formatFilters, onClick = { onFormatFilter(format) }, label = { Text(formatLabel(format)) })
+                        }
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LibraryDraftFilter.entries.forEach { filter ->
+                            FilterChip(selected = state.draftFilter == filter, onClick = { onDraftFilter(filter) },
+                                label = { Text(when (filter) { LibraryDraftFilter.ALL -> "All validation states"; LibraryDraftFilter.DRAFTS -> "Needs validation fixes"; LibraryDraftFilter.VALID -> "Structure passes" }) })
+                        }
+                    }
+                    if (state.tagFilters.isNotEmpty()) {
+                        Text("Matching all local tags", style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            state.tagFilters.forEach { tag -> FilterChip(selected = true, onClick = { onTagFilter(tag) }, label = { Text(tag) }) }
+                        }
+                    }
+                }
+                if (activeFilterCount > 0) TextButton(onClick = onClearFilters) { Text("Clear filters") }
                 if (state.preferenceFailed) Text(stringResource(R.string.preference_failed), style = MaterialTheme.typography.bodySmall)
                 Text(pluralStringResource(R.plurals.project_count, state.visibleProjects.size, state.visibleProjects.size),
                     style = MaterialTheme.typography.labelLarge)
@@ -106,7 +152,7 @@ internal fun LibraryScreen(
                 }
             }
             state.visibleProjects.isEmpty() -> item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(stringResource(if (state.query.isBlank()) R.string.library_empty else R.string.search_empty),
+                Text(stringResource(if (state.query.isBlank() && activeFilterCount == 0) R.string.library_empty else R.string.search_empty),
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -118,6 +164,11 @@ internal fun LibraryScreen(
                     Text(project.sourceFileName, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(stringResource(if (project.isDraft) R.string.saved_draft else R.string.saved_local),
                         style = MaterialTheme.typography.labelLarge)
+                    state.libraryMetadata[project.id]?.tags?.takeIf { it.isNotEmpty() }?.let { tags ->
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            tags.forEach { tag -> FilterChip(selected = tag in state.tagFilters, onClick = { onTagFilter(tag) }, label = { Text(tag) }) }
+                        }
+                    }
                     OutlinedButton(onClick = { onOpen(project.id) }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.open_project))
                     }
@@ -134,6 +185,7 @@ internal fun LibraryScreen(
 @Composable
 internal fun LibraryFeedback(state: InspectionState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+        state.recoveryError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (state.busy) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
             Text(stringResource(when (state.operation) {
@@ -156,6 +208,7 @@ internal fun LibraryFeedback(state: InspectionState) {
                 ProjectStorageError.IO_FAILURE -> R.string.storage_io
                 ProjectStorageError.DATABASE_FAILURE -> R.string.storage_database
                 ProjectStorageError.REVISION_CONFLICT -> R.string.storage_revision_conflict
+                ProjectStorageError.IN_USE -> R.string.storage_in_use
             }), color = MaterialTheme.colorScheme.error)
         }
         state.exportFailure?.let { failure ->

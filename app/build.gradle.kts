@@ -15,8 +15,8 @@ android {
         applicationId = "com.valhalla.tavernforge"
         minSdk = 26
         targetSdk = 37
-        versionCode = 4
-        versionName = "0.4.0-internal"
+        versionCode = 5
+        versionName = "0.5.0-internal"
     }
     buildFeatures { compose = true }
     compileOptions {
@@ -35,6 +35,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":format"))
     implementation(libs.datastore.preferences)
+    implementation(libs.exifinterface)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)

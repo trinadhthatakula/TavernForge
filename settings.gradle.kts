@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "TavernForge"
+apply(from = "gradle/dependency-security.settings.gradle.kts")
 include(":core:model", ":format", ":data", ":app")

@@ -51,6 +51,10 @@ internal fun JsonEditorScreen(state: InspectionState, viewModel: InspectionViewM
                         editor.pendingPaths.takeLast(8).forEach { Text(it.take(240), style = MaterialTheme.typography.bodySmall) }
                         if (editor.pendingPaths.size > 8) Text(stringResource(R.string.recent_edits_shown))
                         if (editor.hasUnappliedInput) Text(stringResource(R.string.apply_before_save))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            TextButton(onClick = viewModel::undoEdit, enabled = !state.busy && editor.canUndo && editor.input == null) { Text("Undo unsaved change") }
+                            TextButton(onClick = viewModel::redoEdit, enabled = !state.busy && editor.canRedo && editor.input == null) { Text("Redo") }
+                        }
                         Button(onClick = viewModel::saveEdits, enabled = !state.busy && editor.pendingPaths.isNotEmpty() && !editor.hasUnappliedInput,
                             modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.save_changes)) }
                         if (editor.pendingPaths.isNotEmpty()) Text(stringResource(R.string.save_draft_edits), style = MaterialTheme.typography.bodySmall)
@@ -82,9 +86,7 @@ internal fun JsonEditorScreen(state: InspectionState, viewModel: InspectionViewM
                                 Text(stringResource(R.string.previous_value, input.initialText.take(240).ifEmpty { "\"\"" }),
                                     style = MaterialTheme.typography.bodySmall)
                             }
-                            OutlinedTextField(value = input.text, onValueChange = viewModel::setEditText,
-                                label = { Text(stringResource(R.string.new_value)) }, minLines = 4, maxLines = 12,
-                                modifier = Modifier.fillMaxWidth(), enabled = !state.busy, isError = input.limitExceeded)
+                            TypedInputControls(input, viewModel, !state.busy)
                         } else Text(stringResource(R.string.remove_value_help))
                         if (input.limitExceeded) Text(stringResource(R.string.editor_input_limit), color = MaterialTheme.colorScheme.error)
                         Button(onClick = viewModel::applyEditInput, enabled = !state.busy && !input.limitExceeded,
@@ -98,9 +100,19 @@ internal fun JsonEditorScreen(state: InspectionState, viewModel: InspectionViewM
                 }
             } else {
                 item {
-                    OutlinedButton(onClick = viewModel::editAdvanced, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        AuthoringMode.entries.forEach { mode ->
+                            FilterChip(selected = editor.mode == mode, onClick = { viewModel.setAuthoringMode(mode) },
+                                enabled = !state.busy, label = { Text(if (mode == AuthoringMode.BASIC) "Basic" else "Advanced") })
+                        }
+                    }
+                    Text("Empty required text can pass the format rules. Creative completeness is separate from validation.", style = MaterialTheme.typography.bodySmall)
+                    if (editor.mode == AuthoringMode.ADVANCED) OutlinedButton(onClick = viewModel::editAdvanced, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.advanced_json_value))
                     }
+                }
+                item {
+                    LoreControls(editor, viewModel, !state.busy)
                 }
                 items(editor.fields, key = { it.path }) { field ->
                     Card {
@@ -110,6 +122,7 @@ internal fun JsonEditorScreen(state: InspectionState, viewModel: InspectionViewM
                                 style = MaterialTheme.typography.bodyMedium)
                             Text(field.path, maxLines = 2, overflow = TextOverflow.Ellipsis,
                                 style = MaterialTheme.typography.labelSmall)
+                            Text(if (field.required) "Required by format" else "Optional", style = MaterialTheme.typography.labelSmall)
                             TextButton(onClick = { viewModel.editField(field.path) }, enabled = !state.busy) {
                                 Text(stringResource(R.string.edit_value))
                             }
@@ -117,6 +130,7 @@ internal fun JsonEditorScreen(state: InspectionState, viewModel: InspectionViewM
                     }
                 }
                 if (editor.namedEntriesLimited) item { Text(stringResource(R.string.named_entries_limit)) }
+                if (editor.guidance) item { WritingGuidance(viewModel, !state.busy) }
             }
             items(editor.editIssues.take(20)) { DiagnosticCard(it) }
             item {

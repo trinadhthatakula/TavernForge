@@ -1,0 +1,504 @@
+{
+  "fullCanonicalSha256": "d150bc5dd4bc06d5fc034caad0d87fe2f4287864e5caef93b658a8d1a1cb1d24",
+  "note": "Minimal wire facts extracted from public discovery, not a recorded authenticated response. No descriptions or user data.",
+  "retrievedOn": "2026-11-01",
+  "revision": "20261030",
+  "schemas": {
+    "Blob": {
+      "properties": {
+        "data": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        }
+      }
+    },
+    "Candidate": {
+      "properties": {
+        "avgLogprobs": {
+          "type": "number"
+        },
+        "citationMetadata": {
+          "$ref": "CitationMetadata"
+        },
+        "content": {
+          "$ref": "Content"
+        },
+        "continuationToken": {
+          "type": "string"
+        },
+        "finishMessage": {
+          "type": "string"
+        },
+        "finishReason": {
+          "enum": [
+            "FINISH_REASON_UNSPECIFIED",
+            "STOP",
+            "MAX_TOKENS",
+            "SAFETY",
+            "RECITATION",
+            "LANGUAGE",
+            "OTHER",
+            "BLOCKLIST",
+            "PROHIBITED_CONTENT",
+            "SPII",
+            "MALFORMED_FUNCTION_CALL",
+            "IMAGE_SAFETY",
+            "IMAGE_PROHIBITED_CONTENT",
+            "IMAGE_OTHER",
+            "NO_IMAGE",
+            "IMAGE_RECITATION",
+            "UNEXPECTED_TOOL_CALL",
+            "TOO_MANY_TOOL_CALLS",
+            "MISSING_THOUGHT_SIGNATURE",
+            "MALFORMED_RESPONSE",
+            "ESCALATION",
+            "PUP_LIMITED_DISABLED",
+            "CONTINUATION"
+          ],
+          "type": "string"
+        },
+        "groundingAttributions": {
+          "type": "array"
+        },
+        "groundingMetadata": {
+          "$ref": "GroundingMetadata"
+        },
+        "index": {
+          "type": "integer"
+        },
+        "logprobsResult": {
+          "$ref": "LogprobsResult"
+        },
+        "safetyRatings": {
+          "type": "array"
+        },
+        "tokenCount": {
+          "type": "integer"
+        },
+        "urlContextMetadata": {
+          "$ref": "UrlContextMetadata"
+        }
+      }
+    },
+    "Content": {
+      "properties": {
+        "parts": {
+          "type": "array"
+        },
+        "role": {
+          "type": "string"
+        }
+      }
+    },
+    "CountTokensRequest": {
+      "properties": {
+        "contents": {
+          "type": "array"
+        },
+        "generateContentRequest": {
+          "$ref": "GenerateContentRequest"
+        }
+      }
+    },
+    "CountTokensResponse": {
+      "properties": {
+        "cacheTokensDetails": {
+          "type": "array"
+        },
+        "cachedContentTokenCount": {
+          "type": "integer"
+        },
+        "promptTokensDetails": {
+          "type": "array"
+        },
+        "totalTokens": {
+          "type": "integer"
+        }
+      }
+    },
+    "GenerateContentRequest": {
+      "properties": {
+        "cachedContent": {
+          "type": "string"
+        },
+        "contents": {
+          "type": "array"
+        },
+        "continuationToken": {
+          "type": "string"
+        },
+        "generationConfig": {
+          "$ref": "GenerationConfig"
+        },
+        "labels": {
+          "type": "object"
+        },
+        "model": {
+          "type": "string"
+        },
+        "safetySettings": {
+          "type": "array"
+        },
+        "serviceTier": {
+          "enum": [
+            "unspecified",
+            "standard",
+            "flex",
+            "priority"
+          ],
+          "type": "string"
+        },
+        "store": {
+          "type": "boolean"
+        },
+        "systemInstruction": {
+          "$ref": "Content"
+        },
+        "toolConfig": {
+          "$ref": "ToolConfig"
+        },
+        "tools": {
+          "type": "array"
+        }
+      }
+    },
+    "GenerateContentResponse": {
+      "properties": {
+        "candidates": {
+          "type": "array"
+        },
+        "modelStatus": {
+          "$ref": "ModelStatus"
+        },
+        "modelVersion": {
+          "type": "string"
+        },
+        "promptFeedback": {
+          "$ref": "PromptFeedback"
+        },
+        "responseId": {
+          "type": "string"
+        },
+        "usageMetadata": {
+          "$ref": "UsageMetadata"
+        }
+      }
+    },
+    "GenerationConfig": {
+      "properties": {
+        "_responseJsonSchema": {
+          "deprecated": true,
+          "type": "any"
+        },
+        "audioTranscriptionConfig": {
+          "$ref": "AudioTranscriptionConfig"
+        },
+        "candidateCount": {
+          "type": "integer"
+        },
+        "enableAffectiveDialog": {
+          "type": "boolean"
+        },
+        "enableEnhancedCivicAnswers": {
+          "type": "boolean"
+        },
+        "frequencyPenalty": {
+          "type": "number"
+        },
+        "imageConfig": {
+          "$ref": "ImageConfig"
+        },
+        "logprobs": {
+          "type": "integer"
+        },
+        "maxOutputTokens": {
+          "type": "integer"
+        },
+        "mediaResolution": {
+          "enum": [
+            "MEDIA_RESOLUTION_UNSPECIFIED",
+            "MEDIA_RESOLUTION_LOW",
+            "MEDIA_RESOLUTION_MEDIUM",
+            "MEDIA_RESOLUTION_HIGH"
+          ],
+          "type": "string"
+        },
+        "presencePenalty": {
+          "type": "number"
+        },
+        "responseFormat": {
+          "$ref": "ResponseFormatConfig"
+        },
+        "responseJsonSchema": {
+          "type": "any"
+        },
+        "responseLogprobs": {
+          "type": "boolean"
+        },
+        "responseMimeType": {
+          "type": "string"
+        },
+        "responseModalities": {
+          "type": "array"
+        },
+        "responseSchema": {
+          "$ref": "Schema",
+          "deprecated": true
+        },
+        "seed": {
+          "type": "integer"
+        },
+        "speechConfig": {
+          "$ref": "SpeechConfig"
+        },
+        "stopSequences": {
+          "type": "array"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "thinkingConfig": {
+          "$ref": "ThinkingConfig"
+        },
+        "topK": {
+          "type": "integer"
+        },
+        "topP": {
+          "type": "number"
+        },
+        "translationConfig": {
+          "$ref": "TranslationConfig"
+        }
+      }
+    },
+    "ImageResponseFormat": {
+      "properties": {
+        "aspectRatio": {
+          "enum": [
+            "ASPECT_RATIO_UNSPECIFIED",
+            "ASPECT_RATIO_ONE_BY_ONE",
+            "ASPECT_RATIO_TWO_BY_THREE",
+            "ASPECT_RATIO_THREE_BY_TWO",
+            "ASPECT_RATIO_THREE_BY_FOUR",
+            "ASPECT_RATIO_FOUR_BY_THREE",
+            "ASPECT_RATIO_FOUR_BY_FIVE",
+            "ASPECT_RATIO_FIVE_BY_FOUR",
+            "ASPECT_RATIO_NINE_BY_SIXTEEN",
+            "ASPECT_RATIO_SIXTEEN_BY_NINE",
+            "ASPECT_RATIO_TWENTY_ONE_BY_NINE",
+            "ASPECT_RATIO_ONE_BY_EIGHT",
+            "ASPECT_RATIO_EIGHT_BY_ONE",
+            "ASPECT_RATIO_ONE_BY_FOUR",
+            "ASPECT_RATIO_FOUR_BY_ONE"
+          ],
+          "type": "string"
+        },
+        "delivery": {
+          "enum": [
+            "DELIVERY_UNSPECIFIED",
+            "INLINE",
+            "URI"
+          ],
+          "type": "string"
+        },
+        "imageSize": {
+          "enum": [
+            "IMAGE_SIZE_UNSPECIFIED",
+            "IMAGE_SIZE_FIVE_TWELVE",
+            "IMAGE_SIZE_ONE_K",
+            "IMAGE_SIZE_TWO_K",
+            "IMAGE_SIZE_FOUR_K"
+          ],
+          "type": "string"
+        },
+        "mimeType": {
+          "enum": [
+            "MIME_TYPE_UNSPECIFIED",
+            "IMAGE_JPEG"
+          ],
+          "type": "string"
+        }
+      }
+    },
+    "Model": {
+      "properties": {
+        "baseModelId": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "inputTokenLimit": {
+          "type": "integer"
+        },
+        "maxTemperature": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "outputTokenLimit": {
+          "type": "integer"
+        },
+        "supportedGenerationMethods": {
+          "type": "array"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "thinking": {
+          "type": "boolean"
+        },
+        "topK": {
+          "type": "integer"
+        },
+        "topP": {
+          "type": "number"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "Part": {
+      "properties": {
+        "audioTranscription": {
+          "$ref": "AudioTranscription"
+        },
+        "codeExecutionResult": {
+          "$ref": "CodeExecutionResult"
+        },
+        "executableCode": {
+          "$ref": "ExecutableCode"
+        },
+        "fileData": {
+          "$ref": "FileData"
+        },
+        "functionCall": {
+          "$ref": "FunctionCall"
+        },
+        "functionResponse": {
+          "$ref": "FunctionResponse"
+        },
+        "inlineData": {
+          "$ref": "Blob"
+        },
+        "mediaProcessing": {
+          "enum": [
+            "MEDIA_PROCESSING_UNSPECIFIED",
+            "STATIC",
+            "AGENTIC"
+          ],
+          "type": "string"
+        },
+        "mediaResolution": {
+          "$ref": "V1mainMediaResolution"
+        },
+        "partMetadata": {
+          "type": "object"
+        },
+        "speechMetadata": {
+          "$ref": "SpeechMetadata"
+        },
+        "text": {
+          "type": "string"
+        },
+        "thought": {
+          "type": "boolean"
+        },
+        "thoughtSignature": {
+          "type": "string"
+        },
+        "toolCall": {
+          "$ref": "ToolCall"
+        },
+        "toolResponse": {
+          "$ref": "ToolResponse"
+        },
+        "videoMetadata": {
+          "$ref": "VideoMetadata"
+        }
+      }
+    },
+    "ResponseFormatConfig": {
+      "properties": {
+        "audio": {
+          "$ref": "AudioResponseFormat"
+        },
+        "image": {
+          "$ref": "ImageResponseFormat"
+        },
+        "text": {
+          "$ref": "TextResponseFormat"
+        }
+      }
+    },
+    "TextResponseFormat": {
+      "properties": {
+        "mimeType": {
+          "enum": [
+            "MIME_TYPE_UNSPECIFIED",
+            "APPLICATION_JSON",
+            "TEXT_PLAIN"
+          ],
+          "type": "string"
+        },
+        "schema": {
+          "type": "any"
+        }
+      }
+    },
+    "UsageMetadata": {
+      "properties": {
+        "cacheTokensDetails": {
+          "type": "array"
+        },
+        "cachedContentTokenCount": {
+          "type": "integer"
+        },
+        "candidatesTokenCount": {
+          "type": "integer"
+        },
+        "candidatesTokensDetails": {
+          "type": "array"
+        },
+        "promptTokenCount": {
+          "type": "integer"
+        },
+        "promptTokensDetails": {
+          "type": "array"
+        },
+        "serviceTier": {
+          "enum": [
+            "unspecified",
+            "standard",
+            "flex",
+            "priority"
+          ],
+          "type": "string"
+        },
+        "thoughtsTokenCount": {
+          "type": "integer"
+        },
+        "toolUsePromptTokenCount": {
+          "type": "integer"
+        },
+        "toolUsePromptTokensDetails": {
+          "type": "array"
+        },
+        "totalTokenCount": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "source": "https://generativelanguage.googleapis.com/$discovery/rest?version=v1beta"
+}

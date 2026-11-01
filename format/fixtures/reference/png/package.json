@@ -1,0 +1,13 @@
+{
+  "name": "tavernforge-png-reference",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Development-only pinned SillyTavern PNG interoperability oracle",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "crc": "4.3.2",
+    "png-chunk-text": "1.0.0",
+    "png-chunks-extract": "1.0.0"
+  }
+}

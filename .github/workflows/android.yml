@@ -41,6 +41,14 @@ jobs:
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Test foundations and build internal APK
         run: ./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug :data:lintDebug :app:lintDebug --no-daemon --console plain
+      - name: Set up pinned PNG reference runtime
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '26.13.0'
+      - name: Check PNG outputs with pinned SillyTavern reader
+        run: |
+          npm ci --prefix format/fixtures/reference/png --ignore-scripts --no-audit --no-fund
+          node format/fixtures/reference/png/check.mjs format/build/png-reference
       - name: Verify isolated toolchain probe
         run: ./gradlew -p tools/compatibility-smoke :probe:testDebugUnitTest :probe:assembleDebug --no-daemon --console plain
       - name: Retain internal APK

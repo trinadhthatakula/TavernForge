@@ -1,0 +1,33 @@
+{
+  "models": [
+    {
+      "imageOutput": false,
+      "name": "models/gemini-3.8-flash",
+      "pageUpdated": "2026-10-30",
+      "source": "https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash",
+      "structuredOutput": true,
+      "textOutput": true
+    },
+    {
+      "availabilityNote": "Official page limits access to previously active users; runtime listing is required.",
+      "imageOutput": false,
+      "name": "models/gemini-2.5-flash",
+      "pageUpdated": "2026-10-29",
+      "source": "https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash",
+      "structuredOutput": true,
+      "textOutput": true
+    },
+    {
+      "adapterNote": "Standalone text requests disabled for this model; incidental image caption is staging only.",
+      "imageOutput": true,
+      "name": "models/gemini-3.1-flash-image",
+      "pageUpdated": "2026-10-29",
+      "source": "https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-image",
+      "structuredOutput": false,
+      "textOutput": true
+    }
+  ],
+  "note": "Original factual transcription from official model pages; no authenticated availability claim.",
+  "registryVersion": "official-model-pages-2026-11-01-v1",
+  "retrievedOn": "2026-11-01"
+}

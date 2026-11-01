@@ -68,6 +68,7 @@ class PreparedRequest internal constructor(
     val automaticFollowup: Boolean,
 ) {
     internal var admitted: Boolean = false
+    internal var discarded: Boolean = false
     val id: String = UUID.randomUUID().toString()
     val provider: String = "Google Gemini"
     val origin: String = "https://generativelanguage.googleapis.com"

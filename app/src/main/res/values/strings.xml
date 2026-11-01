@@ -103,7 +103,7 @@
     <string name="edit_content">Edit saved JSON</string>
     <string name="close_editor">Close editor</string>
     <string name="edit_revision">Saved revision %1$d</string>
-    <string name="editor_preservation">The original source stays intact. Apply explicit field changes, review validation, then save. Undo covers unsaved commands. Unsaved edits stay in memory and are lost if the app process closes.</string>
+    <string name="editor_preservation">The original source stays intact. Apply explicit field changes, review validation, then save. Undo covers unsaved commands. A private recovery snapshot follows edits after a short delay; the last moments of typing may not yet be captured. Review recovered edits before saving.</string>
     <plurals name="pending_changes">
         <item quantity="one">%1$d pending change</item>
         <item quantity="other">%1$d pending changes</item>

@@ -56,6 +56,14 @@ class GenerationPolicyTest {
         } finally { pool.shutdownNow() }
     }
 
+    @Test fun discardedPreviewInvalidatesExistingApprovalAndCannotBeReapproved() {
+        val policy = enabled(); val prepared = request(policy); val approval = policy.approve(prepared)
+        policy.discard(prepared)
+        assertFalse(policy.isCurrent(prepared))
+        error(GenerationError.STALE_PREVIEW) { policy.approve(prepared) }
+        error(GenerationError.STALE_PREVIEW) { policy.admit(prepared, approval, "key-1", target) }
+    }
+
     @Test fun keyRevisionAndGrantChangesInvalidateApproval() {
         val policy = enabled(); val prepared = request(policy); val approval = policy.approve(prepared)
         error(GenerationError.KEY_CHANGED) { policy.admit(prepared, approval, "key-2", target) }

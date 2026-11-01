@@ -12,6 +12,42 @@ import org.junit.Test
 class GeminiServiceTest {
     private val target = GenerationTarget("synthetic-project", 2, "Synthetic field")
 
+    @Test fun cancelledGenerationAndCountPreviewsReleaseCapacityWithoutNetwork() = runBlocking {
+        fixture().use { f ->
+            val model = f.list().first(); f.service.updateGrants(GenerationGrants(text = true))
+            repeat(300) {
+                val generation = f.service.prepareText(model, "Synthetic", target)
+                val count = f.service.prepareTokenCount(generation)
+                f.service.discard(generation); f.service.discard(count)
+            }
+            val request = f.service.prepareText(model, "Still available", target)
+            f.service.approve(request)
+            assertEquals(1, f.transport.attempts)
+        }
+    }
+
+    @Test fun discardedMetadataPreviewCannotUseAnExistingApproval() = runBlocking {
+        fixture().use { f ->
+            val request = f.service.prepareModelList(); val approval = f.service.approve(request)
+            f.service.discard(request)
+            assertEquals(GenerationError.STALE_PREVIEW, (f.service.execute(request, approval, request.target) as GeminiResult.Failure).code)
+            assertEquals(0, f.transport.attempts)
+        }
+    }
+
+    @Test fun countPreviewsRespectTheSharedOutstandingRequestBound() = runBlocking {
+        fixture().use { f ->
+            val model = f.list().first(); f.service.updateGrants(GenerationGrants(text = true))
+            val generation = f.service.prepareText(model, "Synthetic", target)
+            val counts = List(255) { f.service.prepareTokenCount(generation) }
+            try { f.service.prepareTokenCount(generation); fail("Expected outstanding request limit") }
+            catch (e: GenerationException) { assertEquals(GenerationError.LIMIT_EXCEEDED, e.code) }
+            counts.forEach(f.service::discard)
+            f.service.prepareTokenCount(generation)
+            assertEquals(1, f.transport.attempts)
+        }
+    }
+
     @Test fun listedMethodsIntersectExactEvidenceAndNeverInferImageFromNames() = runBlocking {
         fixture().use { fixture ->
             val models = fixture.list()

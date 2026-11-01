@@ -58,3 +58,13 @@ Real PNG picker smoke on the preceding composition APK imported the pinned upstr
 ## Remaining integration evidence
 
 Final JPEG/tag migration and conversion tests; single-send HTTP replay guard; backup/restore; Gemini/settings/draft-acceptance UI; recovery after process death; narrow/expanded/rotation/large-font checks; real PNG picker workflow; final full locked regression/CI/security scan and artifact fingerprint. Real-key provider calls remain separate from deterministic synthetic testing and will not be fabricated.
+
+## Durable-worktree recovery checkpoint
+
+The temporary feature checkout was cleared during the interruption. Pushed checkpoint `37b7175` and stable main survived. Continued work now uses a permanent sibling worktree; recovery work is committed incrementally. Historical build12 had 326 passing JVM tests and two app lint warnings, but its files/results were lost and do not verify the reconstructed tree.
+
+The reconstructed archive production plus repository bridge compiled and passed the existing suite in 50s. The subsequent full locked command (same task list above without `--write-locks`) passed in 39s: **313 JVM tests** (13 model, 128 format, 93 data, 79 app), no failures/errors/skips, and **zero issues in both lint reports**. This includes recovered six repository tests and six editing-recovery tests, password masking, four PNG output-budget regressions, and four policy/service preview-disposal regressions. The remaining 21 archive codec/service and four Room test methods are being restored separately.
+
+Independent review found that abandoned generation/count previews accumulated in a bounded service map, and counting could bypass that map's limit. Explicit disposal now releases entries and permanently invalidates old approvals; UI cancellation, count replacement, key/grant changes and execution cleanup call it. A 300-cycle mock test proves prepare/count/discard stays available without a generation call. Counts share the 256 outstanding-request bound. PNG export now respects the smaller of input and output budgets so the app cannot successfully export a card it rejects as oversized on reimport; source/storage limits were not increased.
+
+Before interruption, the AVD's real password field exposed only bullets after the fix. A deliberately invalid synthetic credential was stored, survived force-stop/reopen and was deleted; all grants stayed off. No provider request was made. A manual edit's unfinished text survived force-stop/recovery; applying it and force-stopping again restored one undoable pending change. Recovered input's incorrect previous-value caption was found and corrected in the reconstructed source. These older UI observations will be rerun against the final reconstructed APK.

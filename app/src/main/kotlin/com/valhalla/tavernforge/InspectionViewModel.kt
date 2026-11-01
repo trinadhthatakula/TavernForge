@@ -11,6 +11,11 @@ import com.valhalla.tavernforge.core.model.SourceFormat
 import com.valhalla.tavernforge.data.ProjectRepository
 import com.valhalla.tavernforge.data.ProjectStorageError
 import com.valhalla.tavernforge.data.ProjectStorageException
+import com.valhalla.tavernforge.data.drafts.EditJournal
+import com.valhalla.tavernforge.data.drafts.EditRecovery
+import com.valhalla.tavernforge.data.drafts.RecoveryInput
+import com.valhalla.tavernforge.data.drafts.EditJournalException
+import com.valhalla.tavernforge.data.drafts.EditJournalError
 import com.valhalla.tavernforge.format.CharacterCardEngine
 import com.valhalla.tavernforge.format.CharacterDocument
 import com.valhalla.tavernforge.format.ExportResult
@@ -29,6 +34,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -57,8 +63,13 @@ data class InspectionState(
     val exportPreview: ExportPreview? = null,
     val exportFailure: ExportFailure? = null,
     val manualCreated: Boolean = false,
+    val recoveryChecking: Boolean = false,
+    val recoveryAvailable: Boolean = false,
+    val recoveryCanRestore: Boolean = false,
+    val recoveryError: String? = null,
+    val recoveryOpened: Boolean = false,
 ) {
-    val busy: Boolean get() = loading || operation != null || exportPreview != null
+    val busy: Boolean get() = loading || operation != null || exportPreview != null || recoveryChecking
     val hasUnsavedDraft: Boolean get() = summary?.canSaveDraft == true && selectedProject == null
     val hasUnsavedWork: Boolean get() = hasUnsavedDraft || editor?.hasChanges == true
     val canEdit: Boolean get() = selectedProject != null && summary?.canSaveDraft == true && summary.status != InspectionStatus.UNSUPPORTED
@@ -77,8 +88,9 @@ class InspectionViewModel(
     private val preferences: LibraryPreferences,
     private val parsingDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val writer: DocumentWriter? = null,
+    private val journal: EditJournal? = null,
 ) : ViewModel() {
-    private val mutableState = MutableStateFlow(InspectionState())
+    private val mutableState = MutableStateFlow(InspectionState(recoveryChecking = journal != null))
     val state = mutableState.asStateFlow()
     private var inspection: Job? = null
     private var libraryObservation: Job? = null
@@ -94,6 +106,10 @@ class InspectionViewModel(
     private var selectedEntry: EntryLocator? = null
     private var nextExportId = 0L
     private var preparedExport: PreparedExport? = null
+    private var pendingRecovery: EditRecovery? = null
+    private var journalSession: Long? = null
+    private var journalWrite: Job? = null
+    private var journalClear: Job? = null
 
     private class PreparedExport(val id: Long, val selection: Long, val projectId: String, val revision: Long, bytes: ByteArray) {
         private val content = bytes.copyOf()
@@ -104,6 +120,17 @@ class InspectionViewModel(
 
     init {
         refreshLibrary()
+        if (journal != null) viewModelScope.launch {
+            try {
+                val recovery = journal.load()
+                if (recovery != null && !recovery.hasAppliedChanges && recovery.input == null) journal.clear()
+                else pendingRecovery = recovery
+                mutableState.value = mutableState.value.copy(recoveryAvailable = pendingRecovery != null, recoveryCanRestore = pendingRecovery != null)
+            } catch (_: EditJournalException) {
+                mutableState.value = mutableState.value.copy(recoveryAvailable = true, recoveryCanRestore = false,
+                    recoveryError = "The recovery file is unavailable or damaged. Saved library projects remain intact; discard this recovery file to continue.")
+            } finally { mutableState.value = mutableState.value.copy(recoveryChecking = false) }
+        }
         viewModelScope.launch {
             try { preferences.sort.collect { sort -> mutableState.value = mutableState.value.copy(sort = sort) }
             } catch (cancelled: CancellationException) { throw cancelled
@@ -166,7 +193,7 @@ class InspectionViewModel(
     }
     fun consumeManualCreated() { mutableState.value = mutableState.value.copy(manualCreated = false) }
     private fun mayReplaceSelection() = mutableState.value.operation == null && mutableState.value.exportPreview == null &&
-        mutableState.value.editor?.hasChanges != true
+        mutableState.value.editor?.hasChanges != true && !mutableState.value.recoveryChecking && !mutableState.value.recoveryAvailable
 
     private fun select(operation: LibraryOperation?, read: suspend () -> Selection) {
         inspection?.cancel()
@@ -251,7 +278,7 @@ class InspectionViewModel(
     fun beginEditing(): Boolean {
         val current = mutableState.value
         val document = selectedDocument ?: return false
-        if (current.busy || !current.canEdit) return false
+        if (current.busy || current.recoveryAvailable || !current.canEdit) return false
         if (current.editor != null) return true
         editorBase = document; editorDocument = document; pendingPatches = emptyList(); editHistory = EditHistory(engine, document)
         authoringMode = AuthoringMode.BASIC; selectedEntry = null
@@ -259,8 +286,12 @@ class InspectionViewModel(
             notice = null, storageFailure = null, exportFailure = null)
         viewModelScope.launch {
             try {
+                journalClear?.join()
+                journalSession = journal?.startSession()
                 val editor = withContext(parsingDispatcher) { editorState(document) }
                 mutableState.value = mutableState.value.copy(editor = editor)
+            } catch (_: EditJournalException) {
+                mutableState.value = mutableState.value.copy(recoveryError = "Edit recovery is unavailable. Save changes explicitly to keep them.")
             } finally { mutableState.value = mutableState.value.copy(operation = null) }
         }
         return true
@@ -334,10 +365,14 @@ class InspectionViewModel(
         val input = editor.input ?: return
         if (mutableState.value.busy) return
         mutableState.value = mutableState.value.copy(editor = editor.copy(input = change(input), editIssues = emptyList()))
+        scheduleRecovery()
     }
     fun cancelEditInput() {
         val editor = mutableState.value.editor ?: return
-        if (!mutableState.value.busy) mutableState.value = mutableState.value.copy(editor = editor.copy(input = null, editIssues = emptyList()))
+        if (!mutableState.value.busy) {
+            mutableState.value = mutableState.value.copy(editor = editor.copy(input = null, editIssues = emptyList()))
+            scheduleRecovery()
+        }
     }
     fun applyEditInput() {
         val editor = mutableState.value.editor ?: return
@@ -372,6 +407,7 @@ class InspectionViewModel(
                         editorDocument = result.document
                         val preview = withContext(parsingDispatcher) { editorState(result.document) }
                         mutableState.value = mutableState.value.copy(editor = preview)
+                        scheduleRecovery()
                     }
                 }
             } finally { mutableState.value = mutableState.value.copy(operation = null) }
@@ -410,6 +446,7 @@ class InspectionViewModel(
                     is PatchResult.Success -> {
                         pendingPatches = requireNotNull(editHistory).patches; editorDocument = result.document
                         mutableState.value = mutableState.value.copy(editor = withContext(parsingDispatcher) { editorState(result.document) })
+                        scheduleRecovery()
                     }
                 }
             } finally { mutableState.value = mutableState.value.copy(operation = null) }
@@ -429,6 +466,7 @@ class InspectionViewModel(
         if (proposed.length > MAX_EDITOR_CHARS) return
         val editor = mutableState.value.editor ?: return
         mutableState.value = mutableState.value.copy(editor = editor.copy(input = EditInput(path, proposed, EditValueMode.TEXT, initialText = before)))
+        scheduleRecovery()
     }
     fun saveEdits() {
         val editor = mutableState.value.editor ?: return
@@ -453,7 +491,114 @@ class InspectionViewModel(
         resetEditor()
         mutableState.value = mutableState.value.copy(editor = null, storageFailure = null)
     }
-    private fun resetEditor() { editorBase = null; editorDocument = null; pendingPatches = emptyList(); editHistory = null; selectedEntry = null }
+    private fun resetEditor() {
+        val hadJournalSession = journalSession != null || journalWrite != null
+        journalWrite?.cancel(); journalWrite = null; journalSession = null
+        if (hadJournalSession) clearJournalAfterPrevious()
+        editorBase = null; editorDocument = null; pendingPatches = emptyList(); editHistory = null; selectedEntry = null
+    }
+
+    private fun clearJournalAfterPrevious() {
+        val journal = journal ?: return
+        val previous = journalClear
+        journalClear = viewModelScope.launch {
+            previous?.join()
+            try { journal.clear()
+            } catch (_: EditJournalException) {
+                mutableState.value = mutableState.value.copy(recoveryError = "The recovery file could not be cleared. Saved library content remains intact.")
+            }
+        }
+    }
+
+    private fun scheduleRecovery() {
+        val journal = journal ?: return
+        val session = journalSession ?: return
+        val document = editorDocument ?: return
+        val stored = storedProject ?: return
+        val editor = mutableState.value.editor ?: return
+        val changed = pendingPatches.isNotEmpty()
+        val input = editor.input?.takeIf { it.changed }?.let { RecoveryInput(it.path, it.text, it.mode.name, it.action.name, it.pathEditable) }
+        journalWrite?.cancel()
+        journalWrite = viewModelScope.launch {
+            delay(250)
+            try {
+                val source = if (!changed) stored.currentSource else withContext(parsingDispatcher) {
+                    val snapshot = engine.snapshot(document) as? ExportResult.Success
+                        ?: throw EditJournalException(EditJournalError.INVALID_DRAFT)
+                    SourceEnvelope(snapshot.bytes)
+                }
+                journal.save(session, EditRecovery(stored.summary.id, stored.documentRevision, stored.source.sha256,
+                    stored.currentSource.sha256, source, changed, input))
+            } catch (_: EditJournalException) {
+                mutableState.value = mutableState.value.copy(recoveryError = "The latest edits could not be written to recovery. Save changes explicitly to keep them.")
+            }
+        }
+    }
+
+    fun discardRecovery() {
+        val journal = journal ?: return
+        if (mutableState.value.busy) return
+        mutableState.value = mutableState.value.copy(operation = LibraryOperation.EDITING)
+        viewModelScope.launch {
+            try {
+                journalWrite?.cancel(); journalWrite = null; journalSession = null
+                journalClear?.join(); journal.clear(); pendingRecovery = null
+                mutableState.value = mutableState.value.copy(recoveryAvailable = false, recoveryCanRestore = false, recoveryError = null)
+            } catch (_: EditJournalException) {
+                mutableState.value = mutableState.value.copy(recoveryError = "The recovery file could not be discarded. Retry before opening another project.")
+            } finally { mutableState.value = mutableState.value.copy(operation = null) }
+        }
+    }
+
+    fun recoverEdits() {
+        val recovery = pendingRecovery ?: return
+        val journal = journal ?: return
+        if (mutableState.value.busy) return
+        mutableState.value = mutableState.value.copy(operation = LibraryOperation.OPENING, recoveryError = null)
+        viewModelScope.launch {
+            try {
+                val saved = repository.load(recovery.projectId)
+                val restored = withContext(parsingDispatcher) {
+                    val base = (engine.restore(saved.source, saved.currentSource, saved.documentRevision) as? ParseResult.Success)?.document
+                        ?: throw EditJournalException(EditJournalError.INVALID_DRAFT)
+                    val patches = recovery.patchesFor(saved, engine)
+                    val history = EditHistory(engine, base)
+                    val preview = if (patches.isEmpty()) base else (history.append(patches) as? PatchResult.Success)?.document
+                        ?: throw EditJournalException(EditJournalError.INVALID_DRAFT)
+                    Triple(base, preview, history)
+                }
+                journalClear?.join(); journalSession = journal.startSession()
+                storedProject = saved; selectedSource = saved.source; selectedDocument = restored.first
+                editorBase = restored.first; editorDocument = restored.second; editHistory = restored.third; pendingPatches = restored.third.patches
+                authoringMode = AuthoringMode.ADVANCED
+                selectedEntry = recovery.input?.path?.let { inputPath -> loreEntries(restored.second).firstOrNull {
+                    inputPath == it.path || inputPath.startsWith("${it.path}/")
+                }?.locator }
+                ++selectionRevision
+                val editor = withContext(parsingDispatcher) { editorState(restored.second) }
+                val restoredInput = withContext(parsingDispatcher) { recovery.input?.let {
+                    val mode = EditValueMode.valueOf(it.mode)
+                    val previous = valueAt(restored.second.raw, it.path)
+                    val initialText = when {
+                        previous == null -> "(absent)"
+                        mode == EditValueMode.TEXT && previous is JsonPrimitive && previous.isString -> previous.content
+                        else -> previous.toString()
+                    }
+                    val field = authoringFields(restored.second, AuthoringMode.ADVANCED, selectedEntry).firstOrNull { field -> field.path == it.path }
+                    EditInput(it.path, it.text, mode, initialText = initialText, field = field,
+                        action = EditAction.valueOf(it.action), pathEditable = it.pathEditable, recovered = true)
+                } }
+                val summary = withContext(parsingDispatcher) { summarizeDocument(engine, saved.summary.sourceFileName, restored.first, saved.currentSource) }
+                pendingRecovery = null
+                mutableState.value = mutableState.value.copy(selectedProject = saved.summary, summary = summary, documentRevision = saved.documentRevision,
+                    editor = editor.copy(input = restoredInput), recoveryAvailable = false, recoveryCanRestore = false, recoveryOpened = true)
+                scheduleRecovery()
+            } catch (_: EditJournalException) { mutableState.value = mutableState.value.copy(recoveryError = "This recovery no longer matches the saved project's original and revision, or is invalid. It was not applied; discard it to reopen the saved project.")
+            } catch (_: ProjectStorageException) { mutableState.value = mutableState.value.copy(recoveryError = "The project needed by this recovery is unavailable. No saved project was overwritten.")
+            } finally { mutableState.value = mutableState.value.copy(operation = null) }
+        }
+    }
+    fun consumeRecoveryOpened() { mutableState.value = mutableState.value.copy(recoveryOpened = false) }
 
     fun prepareExport() {
         val current = mutableState.value

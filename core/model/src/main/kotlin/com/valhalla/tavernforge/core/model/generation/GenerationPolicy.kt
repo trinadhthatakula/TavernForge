@@ -63,9 +63,15 @@ class GenerationPolicy(private val clockMillis: () -> Long = { System.nanoTime()
     }
 
     @Synchronized fun isCurrent(request: PreparedRequest): Boolean =
-        request.grantGeneration == generation && permitted(request.purpose, request.automaticFollowup)
+        request.owner == owner && !request.discarded && request.grantGeneration == generation && permitted(request.purpose, request.automaticFollowup)
+
+    /** Explicitly abandoned previews cannot be approved or dispatched through an older approval. */
+    @Synchronized fun discard(request: PreparedRequest) {
+        if (request.owner == owner) request.discarded = true
+    }
 
     private fun checkCurrent(request: PreparedRequest) {
+        if (request.discarded) fail(GenerationError.STALE_PREVIEW)
         if (request.grantGeneration != generation) fail(GenerationError.STALE_PREVIEW)
         checkPermission(request.purpose, request.automaticFollowup)
     }

@@ -210,7 +210,10 @@ class PngCardEngine(val limits: PngLimits = PngLimits(), val cards: CharacterCar
         val bytes = container.bytes()
         val noOp = sourceCandidates.isNotEmpty() && sourceCandidates.all { it.conforms && it.document?.source?.sha256 == jsonHash } &&
             (select(container) as? PngSelectionResult.Selected)?.document?.source?.sha256 == jsonHash
-        if (noOp && bytes.size > limits.maxOutputBytes) return exportFailure("PNG_LIMIT", "PNG export exceeds the output byte budget.")
+        // Every emitted card must fit this same engine's import budget. Metadata insertion
+        // can otherwise grow a valid input beyond the app/repository's unchanged PNG limit.
+        val exportByteLimit = minOf(limits.maxOutputBytes, limits.maxBytes)
+        if (noOp && bytes.size > exportByteLimit) return exportFailure("PNG_LIMIT", "PNG export exceeds the reimportable output byte budget.")
         if (noOp) return PngExportPlanResult.Ready(PngExportPlan(bytes, emptyList(), container.sha256, document.revision, jsonHash, document.sourceFormat))
         val removalIndices = sourceCandidates.map { it.chunkIndex }.toSet()
         if (container.chunks.size - removalIndices.size + 1 > limits.maxChunks) return exportFailure("PNG_LIMIT", "PNG export exceeds the chunk-count budget.")
@@ -219,7 +222,7 @@ class PngCardEngine(val limits: PngLimits = PngLimits(), val cards: CharacterCar
         val payload = keyword.toByteArray(Charsets.US_ASCII) + byteArrayOf(0) + encoded
         if (payload.size > limits.maxChunkBytes) return exportFailure("PNG_LIMIT", "Export card metadata exceeds the chunk budget.")
         val outputLength = bytes.size.toLong() - container.chunks.filterIndexed { i, _ -> i in removalIndices }.sumOf { it.length.toLong() + 12 } + payload.size + 12
-        if (outputLength > limits.maxOutputBytes || outputLength > Int.MAX_VALUE) return exportFailure("PNG_LIMIT", "PNG export exceeds the output byte budget.")
+        if (outputLength > exportByteLimit || outputLength > Int.MAX_VALUE) return exportFailure("PNG_LIMIT", "PNG export exceeds the reimportable output byte budget.")
         val out = ByteArrayOutputStream(outputLength.toInt())
         out.write(SIGNATURE)
         container.chunks.forEachIndexed { index, chunk ->

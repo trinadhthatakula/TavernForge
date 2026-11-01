@@ -108,7 +108,7 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
         viewModel.completeExport(uri)
     }
     fun protectDraft(action: () -> Unit) {
-        if (state.busy) return
+        if (state.busy || state.recoveryAvailable) return
         val proceed = { viewModel.discardEdits(); action() }
         if (state.hasUnsavedWork) pendingReplacement = proceed else proceed()
     }
@@ -146,6 +146,15 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
             if (backStack.lastOrNull() == CreateManual) backStack.removeLastOrNull()
             if (backStack.lastOrNull() != Inspector) backStack.add(Inspector)
             if (viewModel.beginEditing()) backStack.add(Editor)
+        }
+    }
+    LaunchedEffect(state.recoveryOpened, state.busy) {
+        if (state.recoveryOpened && !state.busy) {
+            viewModel.consumeRecoveryOpened()
+            if (backStack.lastOrNull() != Editor) {
+                if (backStack.lastOrNull() != Inspector) backStack.add(Inspector)
+                backStack.add(Editor)
+            }
         }
     }
     Scaffold(
@@ -205,6 +214,10 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
         title = { Text("Discard generated draft and close?") }, text = { Text("This unaccepted generated content has not been saved.") },
         confirmButton = { TextButton(onClick = { confirmGenerationClose = false; generationViewModel.discardDraft(); backStack.removeLastOrNull() }) { Text("Discard and close") } },
         dismissButton = { TextButton(onClick = { confirmGenerationClose = false }) { Text("Keep draft") } })
+    if (state.recoveryAvailable) AlertDialog(onDismissRequest = {}, title = { Text("Unsaved edit recovery") },
+        text = { Text(state.recoveryError ?: "An interrupted manual edit session was found. Recovery checks the original source and saved revision before applying anything. Review the recovered input and changes before saving.") },
+        confirmButton = { TextButton(onClick = viewModel::recoverEdits, enabled = !state.busy && state.recoveryCanRestore) { Text("Recover for review") } },
+        dismissButton = { TextButton(onClick = viewModel::discardRecovery, enabled = !state.busy) { Text("Discard recovery") } })
     state.exportPreview?.takeUnless { it.pickerLaunched }?.let { preview ->
         AlertDialog(onDismissRequest = viewModel::cancelExportPreview,
             title = { Text(stringResource(R.string.export_review_title)) },

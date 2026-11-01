@@ -10,6 +10,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import org.koin.core.context.GlobalContext
 import com.valhalla.tavernforge.data.network.gemini.GeminiService
 import com.valhalla.tavernforge.data.security.AndroidGeminiCredentials
+import com.valhalla.tavernforge.data.drafts.FileEditJournal
+import java.io.File
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,6 +25,7 @@ class MainActivity : ComponentActivity() {
                     GlobalContext.get().get(),
                     GlobalContext.get().get(),
                     writer = ContentResolverDocumentWriter(applicationContext.contentResolver),
+                    journal = FileEditJournal(File(applicationContext.noBackupFilesDir, "edit-recovery")),
                 )
             }
         }

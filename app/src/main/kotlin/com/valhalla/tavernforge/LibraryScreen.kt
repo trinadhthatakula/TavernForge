@@ -140,6 +140,7 @@ internal fun LibraryScreen(
 @Composable
 internal fun LibraryFeedback(state: InspectionState) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+        state.recoveryError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (state.busy) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
             Text(stringResource(when (state.operation) {

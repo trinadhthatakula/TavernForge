@@ -77,6 +77,7 @@ class GenerationViewModel(
         viewModelScope.launch {
             credentials.state.collect { snapshot ->
                 val previous = mutableState.value.credential
+                if (previous.generation != snapshot.generation) mutableState.value.preview?.let(service::discard)
                 mutableState.value = mutableState.value.copy(credential = snapshot,
                     models = if (previous.generation != snapshot.generation) emptyList() else mutableState.value.models,
                     modelName = if (previous.generation != snapshot.generation) null else mutableState.value.modelName,
@@ -103,6 +104,7 @@ class GenerationViewModel(
     }
     fun updateKey(value: CharArray) {
         if (mutableState.value.keyWorking) { value.fill('\u0000'); return }
+        mutableState.value.preview?.let(service::discard)
         mutableState.value = mutableState.value.copy(keyWorking = true, preview = null, error = null)
         viewModelScope.launch {
             try { credentials.update(value); mutableState.value = mutableState.value.copy(notice = "Key stored with Android Keystore-backed encryption. No network request was made.")
@@ -112,6 +114,7 @@ class GenerationViewModel(
     }
     fun deleteKey() {
         if (mutableState.value.keyWorking) return
+        mutableState.value.preview?.let(service::discard)
         mutableState.value = mutableState.value.copy(keyWorking = true, preview = null, error = null)
         viewModelScope.launch {
             try { credentials.delete(); mutableState.value = mutableState.value.copy(notice = "Stored key deleted. In-flight credential access was revoked.")
@@ -120,6 +123,7 @@ class GenerationViewModel(
         }
     }
     fun setGrants(grants: GenerationGrants) {
+        mutableState.value.preview?.let(service::discard)
         service.updateGrants(grants)
         mutableState.value = mutableState.value.copy(grants = grants, preview = null)
     }
@@ -152,7 +156,10 @@ class GenerationViewModel(
     fun prepareCount() {
         val request = mutableState.value.preview ?: return
         if (mutableState.value.working) return
-        try { mutableState.value = mutableState.value.copy(preview = service.prepareTokenCount(request), error = null)
+        try {
+            val count = service.prepareTokenCount(request)
+            service.discard(request)
+            mutableState.value = mutableState.value.copy(preview = count, error = null)
         } catch (e: GenerationException) { mutableState.value = mutableState.value.copy(error = safeGenerationError(e.code)) }
     }
     private fun prepare(build: () -> PreparedRequest) {
@@ -162,7 +169,12 @@ class GenerationViewModel(
             mutableState.value = mutableState.value.copy(preview = request)
         }
     }
-    fun cancelPreview() { if (!mutableState.value.working) mutableState.value = mutableState.value.copy(preview = null) }
+    fun cancelPreview() {
+        if (!mutableState.value.working) {
+            mutableState.value.preview?.let(service::discard)
+            mutableState.value = mutableState.value.copy(preview = null)
+        }
+    }
     fun cancelRequest() { requestJob?.cancel() }
     fun approveRequest() {
         val request = mutableState.value.preview ?: return
@@ -196,7 +208,7 @@ class GenerationViewModel(
             } catch (_: CancellationException) { mutableState.value = mutableState.value.copy(preview = null, error = "Request cancelled. If it reached the provider, usage and outcome may be unknown. No automatic retry will occur.")
             } catch (e: GenerationException) { mutableState.value = mutableState.value.copy(preview = null, error = safeGenerationError(e.code))
             } catch (_: Exception) { mutableState.value = mutableState.value.copy(preview = null, error = "The request could not complete. No generated content was saved.")
-            } finally { mutableState.value = mutableState.value.copy(working = false) }
+            } finally { service.discard(request); mutableState.value = mutableState.value.copy(working = false) }
         }
     }
 

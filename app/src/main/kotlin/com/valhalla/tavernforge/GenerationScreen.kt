@@ -8,8 +8,11 @@ import android.text.Editable
 import android.text.InputFilter
 import android.text.InputType
 import android.text.TextWatcher
+import android.text.method.PasswordTransformationMethod
 import android.view.View
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.compose.foundation.Image
@@ -216,11 +219,34 @@ private fun EphemeralKeyInput(value: String, onValueChange: (String) -> Unit, en
     AndroidView(modifier = Modifier.fillMaxWidth(), factory = { context ->
         EditText(context).apply {
             hint = "New Gemini API key"
+            // setSingleLine changes the transformation method; set password behavior afterwards.
+            isSingleLine = true
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            transformationMethod = PasswordTransformationMethod.getInstance()
             imeOptions = EditorInfo.IME_ACTION_DONE or EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING or EditorInfo.IME_FLAG_NO_EXTRACT_UI
             importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
             isSaveEnabled = false
-            isSingleLine = true
+            accessibilityDelegate = object : View.AccessibilityDelegate() {
+                override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
+                    super.onInitializeAccessibilityNodeInfo(host, info)
+                    info.isPassword = true
+                    info.text = "•".repeat(text?.length?.coerceAtMost(64) ?: 0)
+                }
+                override fun onInitializeAccessibilityEvent(host: View, event: AccessibilityEvent) {
+                    super.onInitializeAccessibilityEvent(host, event)
+                    event.isPassword = true
+                    event.text.clear()
+                    event.text.add("•".repeat(text?.length?.coerceAtMost(64) ?: 0))
+                    event.beforeText = null
+                }
+                override fun onPopulateAccessibilityEvent(host: View, event: AccessibilityEvent) {
+                    super.onPopulateAccessibilityEvent(host, event)
+                    event.isPassword = true
+                    event.text.clear()
+                    event.text.add("•".repeat(text?.length?.coerceAtMost(64) ?: 0))
+                    event.beforeText = null
+                }
+            }
             filters = arrayOf(InputFilter.LengthFilter(4096))
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit

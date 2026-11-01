@@ -33,8 +33,9 @@ data class EditInput(
     val pathEditable: Boolean = false,
     val field: EditorField? = null,
     val stringItems: List<String>? = null,
+    val recovered: Boolean = false,
 ) {
-    val changed: Boolean get() = path != initialPath || text != initialText || action != initialAction || mode != initialMode || limitExceeded
+    val changed: Boolean get() = recovered || path != initialPath || text != initialText || action != initialAction || mode != initialMode || limitExceeded
 }
 
 data class JsonEditorState(

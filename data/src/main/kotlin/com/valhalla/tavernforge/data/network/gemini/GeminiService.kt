@@ -28,6 +28,7 @@ class GeminiService(
     private val credentialObserver = scope.launch(start = CoroutineStart.UNDISPATCHED) {
         credentials.state.collectLatest { state ->
             models.entries.removeIf { it.value.credentialGeneration != state.generation }
+            requestModels.entries.removeIf { !state.available || it.value.credentialGeneration != state.generation }
             active.forEach { (job, request) ->
                 if (!state.available || state.generation != request.credentialGeneration) job.cancel()
             }
@@ -37,8 +38,17 @@ class GeminiService(
     fun grants(): GenerationGrants = policy.grants()
 
     fun updateGrants(value: GenerationGrants) {
+        if (policy.grants() != value) synchronized(pageLock) { requestModels.clear() }
         policy.updateGrants(value)
         active.forEach { (job, request) -> if (!policy.isCurrent(request)) job.cancel() }
+    }
+
+    /** Release an abandoned preview without retaining its model or allowing later dispatch. */
+    fun discard(request: PreparedRequest) = synchronized(pageLock) {
+        policy.discard(request)
+        requestModels.remove(request.id)
+        active.forEach { (job, activeRequest) -> if (activeRequest === request) job.cancel() }
+        Unit
     }
 
     fun prepareModelList(pageToken: String? = null): PreparedRequest {
@@ -75,7 +85,7 @@ class GeminiService(
         val prepared = policy.prepare(if (request.purpose == GenerationPurpose.IMAGE) GenerationPurpose.COUNT_IMAGE else GenerationPurpose.COUNT_TEXT,
             request.model, request.target, request.credentialGeneration,
             "/v1beta/${request.model}:countTokens", "POST", body, request.limits.copy(maxResponseBytes = 512 * 1024))
-        requestModels[prepared.id] = model
+        registerRequest(prepared, model)
         return prepared
     }
 
@@ -158,12 +168,14 @@ class GeminiService(
         val prepared = policy.prepare(if (image) GenerationPurpose.IMAGE else GenerationPurpose.TEXT, model.name, target,
             current, "/v1beta/${model.name}:generateContent", "POST", body,
             GenerationLimits(maxOutputTokens = maxTokens, maxResponseBytes = if (image) 24 * 1024 * 1024 else 2 * 1024 * 1024))
-        synchronized(pageLock) {
+        registerRequest(prepared, model)
+        return prepared
+    }
+
+    private fun registerRequest(prepared: PreparedRequest, model: GeminiModel) = synchronized(pageLock) {
             requestModels.entries.removeIf { models[it.value.name] !== it.value || clockMillis() - it.value.fetchedAtMillis !in 0..86_400_000 }
             if (requestModels.size >= 256) fail(GenerationError.LIMIT_EXCEEDED)
             requestModels[prepared.id] = model
-        }
-        return prepared
     }
 
     private fun listedModels(request: PreparedRequest, bytes: ByteArray): GeminiResult.Models {

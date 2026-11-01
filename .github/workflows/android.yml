@@ -40,7 +40,24 @@ jobs:
       - name: Test dependency snapshot safeguards
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       - name: Test foundations and build internal APK
-        run: ./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:assembleDebug :data:lintDebug :app:lintDebug --no-daemon --console plain
+        run: ./gradlew :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :data:lintDebug :app:lintDebug :app:lintRelease --no-daemon --console plain
+      - name: Check optimized unsigned APK
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, pathlib, subprocess, zipfile
+          apk = pathlib.Path('app/build/outputs/apk/release/app-release-unsigned.apk')
+          mapping = pathlib.Path('app/build/outputs/mapping/release/mapping.txt')
+          assert mapping.is_file() and mapping.stat().st_size > 0, 'Missing R8 mapping'
+          aapt = pathlib.Path(os.environ['ANDROID_HOME']) / 'build-tools/37.0.0/aapt2'
+          badging = subprocess.check_output([str(aapt), 'dump', 'badging', str(apk)], text=True)
+          assert "package: name='com.valhalla.tavernforge'" in badging
+          assert 'application-debuggable' not in badging, 'Release APK is debuggable'
+          with zipfile.ZipFile(apk) as archive:
+              assert 'classes.dex' in archive.namelist()
+              assert archive.testzip() is None
+              assert archive.read('assets/open_source_notices.txt') == pathlib.Path('app/src/main/assets/open_source_notices.txt').read_bytes(), 'Missing or stale bundled notices'
+          print('Optimized unsigned APK verified:', apk.stat().st_size, 'bytes; SHA256', hashlib.sha256(apk.read_bytes()).hexdigest())
+          PY
       - name: Set up pinned PNG reference runtime
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -70,9 +87,23 @@ jobs:
             app/build/reports/tests/
             tools/compatibility-smoke/probe/build/reports/tests/
           retention-days: 7
+      - name: Retain optimized unsigned APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: TavernForge-unsigned-release-${{ github.sha }}
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain matching R8 metadata
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: r8-metadata-${{ github.sha }}
+          path: app/build/outputs/mapping/release/
+          if-no-files-found: error
+          retention-days: 7
 
   attest:
-    name: Attest internal APK
+    name: Attest internal APKs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
@@ -85,9 +116,9 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: TavernForge-internal-${{ github.sha }}
+          pattern: TavernForge-*-${{ github.sha }}
           path: dist
       - name: Attest APK provenance
         uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         with:
-          subject-path: dist/app-debug.apk
+          subject-path: dist/**/*.apk

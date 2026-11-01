@@ -26,7 +26,7 @@ import com.valhalla.tavernforge.format.LoreCommand
 internal fun TypedInputControls(input: EditInput, viewModel: InspectionViewModel, enabled: Boolean) {
     val field = input.field
     if (field != null) {
-        Text(if (field.required) "Required by this format. Empty text/arrays may still be valid." else "Optional. Absent and explicit null are distinct.", style = MaterialTheme.typography.bodySmall)
+        Text(if (field.required) "Required field. Empty text or lists may be valid." else "Optional field. Removing it leaves it absent.", style = MaterialTheme.typography.bodySmall)
         if (field.help.isNotBlank()) Text(field.help, style = MaterialTheme.typography.bodySmall)
     }
     if (field != null && (field.control == FieldControl.BOOLEAN || field.nullable || field.options.isNotEmpty())) {
@@ -48,11 +48,11 @@ internal fun TypedInputControls(input: EditInput, viewModel: InspectionViewModel
         val pageSize = 10
         val lastPage = (items.size - 1).coerceAtLeast(0) / pageSize
         val shownPage = page.coerceAtMost(lastPage)
-        Text("${items.size} items. Each input is one exact string; commas and newlines stay inside that item.", style = MaterialTheme.typography.bodySmall)
+        Text("${items.size} items. One item per box; commas and newlines stay in that item.", style = MaterialTheme.typography.bodySmall)
         items.drop(shownPage * pageSize).take(pageSize).forEachIndexed { local, value ->
             val index = shownPage * pageSize + local
             OutlinedTextField(value = value, onValueChange = { viewModel.setStringItem(index, it) },
-                label = { Text("Item ${index + 1}") }, enabled = enabled, modifier = Modifier.fillMaxWidth(), maxLines = 6)
+                label = { Text("${field?.label ?: "Value"} item ${index + 1}") }, enabled = enabled, modifier = Modifier.fillMaxWidth(), maxLines = 6)
             TextButton(onClick = { viewModel.removeStringItem(index) }, enabled = enabled) { Text("Remove item ${index + 1}") }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -63,7 +63,7 @@ internal fun TypedInputControls(input: EditInput, viewModel: InspectionViewModel
         TextButton(onClick = { viewModel.setEditText(input.text) }, enabled = enabled) { Text("Edit exact JSON array") }
     } else {
         OutlinedTextField(value = input.text, onValueChange = viewModel::setEditText,
-            label = { Text("New value") }, minLines = if (field?.control in listOf(FieldControl.NUMBER, FieldControl.BOOLEAN)) 1 else 4,
+            label = { Text(field?.label?.let { "New value: $it" } ?: "New value") }, minLines = if (field?.control in listOf(FieldControl.NUMBER, FieldControl.BOOLEAN)) 1 else 4,
             maxLines = 12, modifier = Modifier.fillMaxWidth(), enabled = enabled, isError = input.limitExceeded)
     }
 }
@@ -79,11 +79,12 @@ internal fun LoreControls(editor: JsonEditorState, viewModel: InspectionViewMode
     val shownPage = page.coerceAtMost(lastPage)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Lore entries (${editor.entries.size})", style = MaterialTheme.typography.titleLarge)
-        Text(if (editor.nativeBook) "List order updates displayIndex. Insertion order, IDs and object keys stay unchanged."
+        Text(if (editor.mode == AuthoringMode.BASIC) "Add an entry or choose one to edit its content and triggers."
+            else if (editor.nativeBook) "List order updates displayIndex. Insertion order, IDs and object keys stay unchanged."
             else "List order changes the entry array. Insertion order and IDs stay unchanged.", style = MaterialTheme.typography.bodySmall)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { viewModel.applyLoreCommand(LoreCommand.AddEntry()) }, enabled = enabled) { Text("Add entry") }
-            TextButton(onClick = { viewModel.selectLoreEntry(null) }, enabled = enabled && editor.selectedEntry != null) { Text("Book fields") }
+            TextButton(onClick = { viewModel.selectLoreEntry(null) }, enabled = enabled && editor.selectedEntry != null) { Text("Lorebook settings") }
         }
         editor.entries.drop(shownPage * pageSize).take(pageSize).forEach { entry ->
             FilterChip(selected = editor.selectedEntry == entry.locator, onClick = { viewModel.selectLoreEntry(entry.locator) },
@@ -97,7 +98,7 @@ internal fun LoreControls(editor: JsonEditorState, viewModel: InspectionViewMode
         val selected = editor.entries.firstOrNull { it.locator == editor.selectedEntry }
         if (selected != null) {
             Text("Selected: ${selected.label}", style = MaterialTheme.typography.titleMedium)
-            Text(selected.path.take(240), style = MaterialTheme.typography.bodySmall)
+            if (editor.mode == AuthoringMode.ADVANCED) Text(selected.path.take(240), style = MaterialTheme.typography.bodySmall)
             val index = editor.entries.indexOf(selected)
             fun move(to: Int) {
                 val order = editor.entries.map { it.locator }.toMutableList()
@@ -110,7 +111,7 @@ internal fun LoreControls(editor: JsonEditorState, viewModel: InspectionViewMode
                 TextButton(onClick = { move(index + 1) }, enabled = enabled && index < editor.entries.lastIndex) { Text("Move down") }
                 TextButton(onClick = { deleting = selected }, enabled = enabled) { Text("Delete entry") }
             }
-            Text("Duplicate keeps all content and extensions. A present entry ID is replaced with an unused ID. Native copies get a display index after the selected entry.", style = MaterialTheme.typography.bodySmall)
+            if (editor.mode == AuthoringMode.ADVANCED) Text("Duplicate keeps all content and extensions. A present entry ID is replaced with an unused ID. Native copies get a display index after the selected entry.", style = MaterialTheme.typography.bodySmall)
         }
     }
     deleting?.let { entry ->

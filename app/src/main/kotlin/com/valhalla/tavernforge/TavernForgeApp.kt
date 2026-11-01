@@ -3,6 +3,10 @@ package com.valhalla.tavernforge
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -13,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -39,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
@@ -66,6 +72,8 @@ import kotlinx.serialization.Serializable
 @Serializable private data class Composition(val characterId: String? = null) : NavKey
 @Serializable private data class Generation(val projectId: String? = null) : NavKey
 @Serializable private data object Backup : NavKey
+@Serializable private data object Settings : NavKey
+@Serializable private data object Licenses : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -97,6 +105,7 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
         // Tall phone windows still use native single-destination navigation.
         emptyList()
     }
+    var showEditorInspector by rememberSaveable { mutableStateOf(true) }
     var pendingReplacement by remember { mutableStateOf<(() -> Unit)?>(null) }
     var confirmCompositionClose by remember { mutableStateOf(false) }
     var confirmGenerationClose by remember { mutableStateOf(false) }
@@ -160,15 +169,54 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
             }
         }
     }
+    val current = backStack.lastOrNull()
+    val primaryDestination = when (current) {
+        Workshop -> PrimaryDestination.LIBRARY
+        Settings -> PrimaryDestination.SETTINGS
+        is Composition -> if (current.characterId == null) PrimaryDestination.ARTWORK else null
+        else -> null
+    }
+    val useRail = adaptiveInfo.windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+    val navigationEnabled = !state.busy && !state.recoveryAvailable && !compositionState.busy && !compositionState.hasUnsavedImport
+    val navigatePrimary: (PrimaryDestination) -> Unit = { destination ->
+        if (navigationEnabled && primaryDestination != destination) protectDraft {
+            // Top-level navigation is offered only outside the draft editor. Keep the library
+            // entry (and its saved scroll/filter state) while replacing a top-level destination.
+            while (backStack.size > 1) backStack.removeLastOrNull()
+            when (destination) {
+                PrimaryDestination.LIBRARY -> Unit
+                PrimaryDestination.ARTWORK -> backStack.add(Composition())
+                PrimaryDestination.SETTINGS -> backStack.add(Settings)
+            }
+        }
+    }
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold) }) },
+        topBar = { TopAppBar(
+            title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold) },
+            actions = {
+                if (current == Editor && adaptiveInfo.windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND)) {
+                    TextButton(onClick = { showEditorInspector = !showEditorInspector }) {
+                        Text(if (showEditorInspector) "Hide inspector" else "Show inspector")
+                    }
+                }
+            },
+        ) },
+        bottomBar = {
+            if (primaryDestination != null && !useRail) {
+                PrimaryNavigation(primaryDestination, navigationEnabled, false, navigatePrimary)
+            }
+        },
     ) { padding ->
+        Row(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+        if (primaryDestination != null && useRail) {
+            PrimaryNavigation(primaryDestination, navigationEnabled, true, navigatePrimary)
+        }
         NavDisplay(
-            modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
+            modifier = Modifier.weight(1f).fillMaxSize(),
             backStack = backStack,
             onBack = { when (backStack.lastOrNull()) { Editor -> closeEditor(); is Composition -> closeComposition(); is Generation -> closeGeneration(); Backup -> closeBackup(); else -> closeInspector() } },
-            sceneStrategies = sceneStrategies,
+            sceneStrategies = if (current == Editor && !showEditorInspector) emptyList() else sceneStrategies,
             entryProvider = entryProvider {
                 entry<Workshop>(metadata = SupportingPaneSceneStrategy.mainPane()) {
                     LibraryScreen(state, importFile, onView = {
@@ -182,10 +230,14 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
                         onGenerate = { protectDraft { backStack.add(Generation()) } },
                         onBackup = { protectDraft { backStack.add(Backup) } },
                         onFormatFilter = viewModel::toggleFormatFilter, onDraftFilter = viewModel::setDraftFilter,
-                        onTagFilter = viewModel::toggleTagFilter, onClearFilters = viewModel::clearLibraryFilters)
+                        onTagFilter = viewModel::toggleTagFilter, onClearFilters = viewModel::clearLibraryFilters,
+                        coverRefreshKey = compositionState.composition to compositionState.artwork,
+                        loadCover = compositionViewModel::loadLibraryCover)
                 }
                 entry<Inspector>(metadata = SupportingPaneSceneStrategy.supportingPane()) {
-                    InspectorScreen(state, importFile, closeInspector, onClear = { protectDraft {
+                    if (current == Editor && state.editor != null) {
+                        EditingInspector(state, onHide = { showEditorInspector = false })
+                    } else InspectorScreen(state, importFile, closeInspector, onClear = { protectDraft {
                         viewModel.clear(); closeInspector()
                     } }, onSave = viewModel::saveDraft, onRename = viewModel::renameProject,
                         onDuplicate = viewModel::duplicateProject, onDelete = viewModel::deleteProject,
@@ -193,7 +245,17 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
                         onComposition = { state.selectedProject?.id?.let { backStack.add(Composition(it)) } },
                         onGenerate = { state.selectedProject?.id?.let { backStack.add(Generation(it)) } }, onLocalTags = viewModel::editLocalTags)
                 }
-                entry<Editor> { JsonEditorScreen(state, viewModel, closeEditor) }
+                entry<Editor>(metadata = SupportingPaneSceneStrategy.mainPane()) {
+                    JsonEditorScreen(state, viewModel, closeEditor)
+                }
+                entry<Settings> {
+                    SettingsContent(
+                        onGemini = { backStack.add(Generation()) },
+                        onBackup = { backStack.add(Backup) },
+                        onLicenses = { backStack.add(Licenses) },
+                    )
+                }
+                entry<Licenses> { LicenseContent(onClose = closeInspector) }
                 entry<CreateManual> { ManualCreationScreen(state, viewModel::createManual, closeInspector) }
                 entry<Backup> { BackupScreen(backupState, backupViewModel, closeBackup) }
                 entry<Composition> { key ->
@@ -212,6 +274,7 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
                 }
             },
         )
+        }
     }
     if (confirmCompositionClose) AlertDialog(onDismissRequest = { confirmCompositionClose = false },
         title = { Text("Discard unsaved PNG preview?") }, text = { Text("The selected PNG has not been saved to the local library.") },
@@ -229,10 +292,11 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
     state.exportPreview?.takeUnless { it.pickerLaunched }?.let { preview ->
         AlertDialog(onDismissRequest = viewModel::cancelExportPreview,
             title = { Text(stringResource(R.string.export_review_title)) },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            text = { Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(stringResource(R.string.export_review_body, preview.revision, formatLabel(preview.sourceFormat),
                     pluralStringResource(R.plurals.byte_size, preview.sizeBytes, preview.sizeBytes)))
                 Text(stringResource(if (preview.formattingChanged) R.string.export_formatting_changed else R.string.export_formatting_original))
+                preview.receiverGuidance.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
             } },
             confirmButton = { TextButton(onClick = {
                 viewModel.confirmExport()?.let { ready ->
@@ -273,12 +337,15 @@ private fun InspectorScreen(
     var renameOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
     var deleteOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
     var title by remember(state.selectedProject?.id) { mutableStateOf("") }
+    var projectSection by rememberSaveable(state.selectedProject?.id) { mutableStateOf("Story") }
+    var showManagement by rememberSaveable(state.selectedProject?.id) { mutableStateOf(false) }
+    var showSource by rememberSaveable(state.selectedProject?.id) { mutableStateOf(false) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp)) {
         item {
             Column {
                 TextButton(onClick = onClose) { Text(stringResource(R.string.close_inspection)) }
-                Text(stringResource(R.string.inspect_title), style = MaterialTheme.typography.headlineMedium,
+                Text(if (state.selectedProject == null) stringResource(R.string.inspect_title) else "Project overview", style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier.semantics { heading() })
                 LibraryFeedback(state)
             }
@@ -306,10 +373,12 @@ private fun InspectorScreen(
                     Text(state.selectedProject?.title ?: summary.documentName?.takeIf(String::isNotBlank)
                         ?: stringResource(R.string.unnamed_document),
                         style = MaterialTheme.typography.titleLarge)
-                    Text(summary.fileName, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(formatLabel(summary.sourceFormat), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     ValidationBadge(summary.status)
-                    Text(stringResource(if (summary.status == InspectionStatus.UNSUPPORTED)
-                        R.string.unsupported_note else R.string.schema_note), style = MaterialTheme.typography.bodySmall)
+                    if (state.selectedProject == null || summary.status == InspectionStatus.UNSUPPORTED) {
+                        Text(stringResource(if (summary.status == InspectionStatus.UNSUPPORTED)
+                            R.string.unsupported_note else R.string.schema_note), style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
             item {
@@ -324,32 +393,51 @@ private fun InspectorScreen(
                             Button(onClick = onSave, enabled = summary.canSaveDraft && !state.busy,
                                 modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.save_draft)) }
                         } else {
-                            Text(stringResource(R.string.saved_note))
                             Text(stringResource(R.string.edit_revision, state.documentRevision))
-                            Button(onClick = onEdit, enabled = state.canEdit && !state.busy,
-                                modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.edit_content)) }
-                            OutlinedButton(onClick = onExport, enabled = state.canExport && !state.busy,
-                                modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.export_json)) }
-                            if (!state.canExport) Text(stringResource(R.string.export_validation_blocked), style = MaterialTheme.typography.bodySmall)
-                            if (summary.sourceFormat in setOf(SourceFormat.V1, SourceFormat.V2, SourceFormat.V3)) {
-                                OutlinedButton(onClick = onComposition, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Artwork and linked lorebooks") }
+                            val character = summary.sourceFormat in setOf(SourceFormat.V1, SourceFormat.V2, SourceFormat.V3)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                (if (character) listOf("Story", "Lore & artwork", "Export") else listOf("Lore", "Export")).forEach { section ->
+                                    val selected = projectSection == section || (!character && projectSection == "Story" && section == "Lore")
+                                    FilterChip(selected = selected, onClick = { projectSection = section }, label = { Text(section) })
+                                }
                             }
-                            OutlinedButton(onClick = onGenerate, enabled = !state.busy && state.canEdit, modifier = Modifier.fillMaxWidth()) { Text("Generate a reviewed draft with Gemini") }
-                            OutlinedButton(onClick = onLocalTags, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Organize with local tags") }
-                            OutlinedButton(onClick = { title = state.selectedProject.title; renameOpen = true },
-                                enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.rename_project)) }
-                            OutlinedButton(onClick = onDuplicate, enabled = !state.busy,
-                                modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.duplicate_project)) }
-                            TextButton(onClick = { deleteOpen = true }, enabled = !state.busy) {
-                                Text(stringResource(R.string.delete_project), color = MaterialTheme.colorScheme.error)
+                            when (projectSection) {
+                                "Lore & artwork" -> {
+                                    Text("Keep artwork and standalone lorebooks linked to this character. Embedding a lorebook requires a separate review.")
+                                    Button(onClick = onComposition, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Manage artwork and lorebooks") }
+                                }
+                                "Export" -> {
+                                    Text("Export the saved version after validation. Source format and unknown fields are preserved.")
+                                    Button(onClick = onExport, enabled = state.canExport && !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.export_json)) }
+                                    if (!state.canExport) Text(stringResource(R.string.export_validation_blocked), style = MaterialTheme.typography.bodySmall)
+                                    if (character) OutlinedButton(onClick = onComposition, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Review artwork and PNG export") }
+                                }
+                                else -> {
+                                    Text(if (character) "Shape the character’s story, greetings and lore." else "Write entries, choose matching rules and organize your lore.")
+                                    summary.loreEntryCount?.let { Text(pluralStringResource(R.plurals.entry_count, it, it), style = MaterialTheme.typography.bodyMedium) }
+                                    Button(onClick = onEdit, enabled = state.canEdit && !state.busy, modifier = Modifier.fillMaxWidth()) { Text(if (character) "Edit story and lore" else "Edit lorebook") }
+                                    OutlinedButton(onClick = onGenerate, enabled = !state.busy && state.canEdit, modifier = Modifier.fillMaxWidth()) { Text("Create a draft with Gemini") }
+                                }
+                            }
+                            TextButton(onClick = { showManagement = !showManagement }) { Text(if (showManagement) "Hide project actions" else "Project actions") }
+                            if (showManagement) {
+                                OutlinedButton(onClick = onLocalTags, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Organize with local tags") }
+                                OutlinedButton(onClick = { title = state.selectedProject.title; renameOpen = true }, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.rename_project)) }
+                                OutlinedButton(onClick = onDuplicate, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.duplicate_project)) }
+                                TextButton(onClick = { deleteOpen = true }, enabled = !state.busy) { Text(stringResource(R.string.delete_project), color = MaterialTheme.colorScheme.error) }
                             }
                         }
                     }
                 }
             }
             item {
-                Card {
+                TextButton(onClick = { showSource = !showSource }) { Text(if (showSource) "Hide source details" else "Source details") }
+            }
+            if (showSource) item {
+                Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text(summary.fileName)
+                        Text(stringResource(R.string.schema_note), style = MaterialTheme.typography.bodySmall)
                         Fact(stringResource(R.string.source_format), formatLabel(summary.sourceFormat))
                         summary.specVersion?.let { Fact(stringResource(R.string.spec_version), it) }
                         summary.loreEntryCount?.let {

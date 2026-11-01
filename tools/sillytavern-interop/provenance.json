@@ -1,0 +1,18 @@
+{
+  "revision": "06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+  "version": "1.19.0",
+  "archiveUrl": "https://codeload.github.com/SillyTavern/SillyTavern/tar.gz/06bde939fb1e9c4c8d8641d810f0a916b5bce127",
+  "archiveSha256": "d3c5b32e7a1b649366d7d35eaaf877b06376864aacd8713ee8e670ff8ee4099c",
+  "sourceSha256": {
+    "package.json": "5b6e0634a63872c33603bf803217613a388f2e5dbd5990f7b30d254bfbf027c2",
+    "package-lock.json": "5ee4095a82d2b326e30290480b33529553cba60d2f418bc086ed3c08d874d888",
+    "server.js": "cf0bf95e2172de47dccbc194d7aaefa7546774ad86cc4a49dcecdb97c4d3f58a",
+    "src/server-main.js": "567d8a9d52e70816e74f119409933f2b42ad03132d7ef01f8db3ae145c2fe7bf",
+    "src/server-startup.js": "646bee9eefa67ed62d2f2157aef88872145b90e6d4c4c32490ad4e1792f9c0ba",
+    "src/endpoints/characters.js": "3235555529e9ff17ecc2ebe9168b0af77fe6ef5947f3d1f7de3df6d5f2567d89",
+    "src/endpoints/worldinfo.js": "1c7bcf4fc54b41beaaa69a88f0398978be048d735a15891e93691930d31991d2",
+    "public/scripts/world-info.js": "111c7f47945839e75b021e09bdbb112a54f0a9b7857d2b95435f573efc7cd9a5",
+    "src/character-card-parser.js": "b74541cd54bb3fe3ab39b3e040f6dba824b263ed9344e4dcf98363e4e148e07c",
+    "default/config.yaml": "5843420bce5cee985d5f1712b0e968b8739b54de77be6ce0093ee412c275b56b"
+  }
+}

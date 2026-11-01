@@ -694,7 +694,8 @@ class InspectionViewModel(
                     val id = ++nextExportId
                     preparedExport = PreparedExport(id, selectionRevision, stored.summary.id, stored.documentRevision, bytes)
                     mutableState.value = mutableState.value.copy(exportPreview = ExportPreview(id, exportFileName(stored.summary.sourceFileName),
-                        stored.summary.sourceFormat, stored.documentRevision, bytes.size, stored.documentRevision > 0))
+                        stored.summary.sourceFormat, stored.documentRevision, bytes.size, stored.documentRevision > 0,
+                        receiverGuidance = receiverExportGuidance(stored.summary.sourceFormat, current.summary?.documentName)))
                 }
                 else -> mutableState.value = mutableState.value.copy(exportFailure = ExportFailure.VALIDATION)
             }

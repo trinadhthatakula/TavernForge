@@ -1,3 +1,5 @@
+import com.android.build.api.variant.HostTestBuilder
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -15,14 +17,27 @@ android {
         applicationId = "com.valhalla.tavernforge"
         minSdk = 26
         targetSdk = 37
-        versionCode = 5
-        versionName = "0.5.0-internal"
+        versionCode = 6
+        versionName = "0.6.0-internal"
+    }
+    buildTypes {
+        release {
+            // AGP 9.3+ enables code/resource optimization and default Android keep rules together.
+            optimization { enable = true }
+        }
     }
     buildFeatures { compose = true }
+    testOptions.unitTests.isIncludeAndroidResources = true
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+// AGP 9.5 realizes preview tasks for both variants during task discovery. Each preview
+// requires its host-test resource APK, even when only debug JVM tests are requested.
+androidComponents.beforeVariants(androidComponents.selector().withBuildType("release")) { variant ->
+    variant.hostTests[HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
 }
 
 kotlin {

@@ -36,7 +36,7 @@ def archive(value, name="dependency-graph-reports/test.json"):
 
 class Response(io.BytesIO):
     def __init__(self, value, headers=None):
-        super().__init__(json.dumps(value).encode())
+        super().__init__(value if isinstance(value, bytes) else json.dumps(value).encode())
         self.headers = headers or {}
 
 
@@ -159,6 +159,73 @@ class ValidationTests(unittest.TestCase):
 
 
 class AvailabilityTests(unittest.TestCase):
+    def setUp(self):
+        self.github = unittest.mock.Mock()
+        self.github.json.return_value = [{"context": gate.CONTEXT, "state": "success",
+                                          "creator": {"login": "github-actions[bot]"}}]
+
+    def test_complete_large_comparison_uses_unfiltered_endpoint_once(self):
+        for count in (100, 802):
+            with self.subTest(count=count):
+                self.github.request.reset_mock()
+                self.github.request.return_value = Response([
+                    {"change_type": "added", "name": f"dependency-{i}"} for i in range(count)])
+                self.assertTrue(gate.snapshots_ready(self.github, "b" * 40, SHA))
+                self.github.request.assert_called_once_with(f"dependency-graph/compare/{'b' * 40}...{SHA}")
+
+    def test_untrusted_or_unsuccessful_receipt_prevents_comparison(self):
+        for receipt in ([], [{"context": gate.CONTEXT, "state": "success"}],
+                        [{"context": gate.CONTEXT, "state": "success", "creator": {"login": "someone-else"}}],
+                        [{"context": gate.CONTEXT, "state": "pending", "creator": {"login": "github-actions[bot]"}}],
+                        [{"context": gate.CONTEXT, "state": "failure", "creator": {"login": "github-actions[bot]"}}]):
+            with self.subTest(receipt=receipt):
+                self.github.json.return_value = receipt
+                self.assertFalse(gate.snapshots_ready(self.github, "b" * 40, SHA))
+                self.github.request.assert_not_called()
+
+    def test_snapshot_warning_rejects_empty_and_large_comparisons(self):
+        for count in (0, 802):
+            with self.subTest(count=count):
+                self.github.request.return_value = Response([{}] * count, {
+                    "x-github-dependency-graph-snapshot-warnings":
+                        base64.b64encode(b"Base snapshots are missing").decode()})
+                self.assertFalse(gate.snapshots_ready(self.github, "b" * 40, SHA))
+
+    def test_malformed_snapshot_warning_is_rejected(self):
+        for warning in ("not valid base64!", base64.b64encode(b"\xff").decode()):
+            with self.subTest(warning=warning), self.assertRaises(ValueError):
+                self.github.request.return_value = Response([], {
+                    "x-github-dependency-graph-snapshot-warnings": warning})
+                gate.snapshots_ready(self.github, "b" * 40, SHA)
+
+    def test_malformed_or_non_list_comparison_is_rejected(self):
+        for data in (b"{", b"\xff", b"[NaN]", b'[{"name":"a","name":"b"}]', b"{}", b"null"):
+            with self.subTest(data=data), self.assertRaises(ValueError):
+                self.github.request.return_value = Response(data)
+                gate.snapshots_ready(self.github, "b" * 40, SHA)
+
+    def test_oversized_comparison_is_rejected(self):
+        self.github.request.return_value = Response([{"name": "x" * 100}])
+        with patch.object(gate, "LIMIT", 64), self.assertRaisesRegex(ValueError, "exceeds size limit"):
+            gate.snapshots_ready(self.github, "b" * 40, SHA)
+
+    def test_next_link_is_rejected_without_following_it(self):
+        cases = [
+            {"Link": '<https://api.github.com/example?page=2>; rel="next"'},
+            {"link": '<https://untrusted.invalid/next>; rel=next'},
+            {"Link": '<https://api.github.com/example>; REL="prev NEXT"'},
+            {"Link": '<https://api.github.com/previous>; rel="prev", '
+                     '<https://api.github.com/next>; rel="next"'},
+            {"Link": '<https://api.github.com/previous>; rel="prev"',
+             "link": '<https://api.github.com/next>; rel="next"'},
+        ]
+        for headers in cases:
+            with self.subTest(headers=headers), self.assertRaisesRegex(ValueError, "refusing incomplete review"):
+                self.github.request.reset_mock()
+                self.github.request.return_value = Response([], headers)
+                gate.snapshots_ready(self.github, "b" * 40, SHA)
+            self.github.request.assert_called_once_with(f"dependency-graph/compare/{'b' * 40}...{SHA}")
+
     def test_success_receipt_and_complete_comparison_are_required(self):
         github = unittest.mock.Mock()
         github.json.return_value = [{"context": gate.CONTEXT, "state": "success",

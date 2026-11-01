@@ -202,18 +202,22 @@ def snapshots_ready(github, base, head):
     status = next((s for s in statuses if s.get("context") == CONTEXT), None)
     if not status or status.get("state") != "success" or status.get("creator", {}).get("login") != "github-actions[bot]":
         return False
-    for page in range(1, 51):
-        with github.request(f"dependency-graph/compare/{base}...{head}?per_page=100&page={page}") as response:
-            warning = response.headers.get("x-github-dependency-graph-snapshot-warnings", "")
-            if warning and base64.b64decode(warning, validate=True).decode().strip():
-                return False
-            data = response.read(LIMIT + 1)
-            require(len(data) <= LIMIT, "Dependency comparison exceeds size limit")
-            changes = decode_json(data)
-            require(isinstance(changes, list), "Invalid dependency comparison")
-            if len(changes) < 100:
-                return True
-    raise ValueError("Dependency comparison exceeds page limit")
+    # This endpoint documents no pagination parameters. Request the complete,
+    # unfiltered comparison; row count is not evidence of another page.
+    # https://docs.github.com/en/rest/dependency-graph/dependency-review
+    with github.request(f"dependency-graph/compare/{base}...{head}") as response:
+        warning = response.headers.get("x-github-dependency-graph-snapshot-warnings", "")
+        if warning and base64.b64decode(warning, validate=True).decode().strip():
+            return False
+        links = ",".join(value for name, value in response.headers.items() if name.lower() == "link")
+        relations = re.findall(r'\brel\s*=\s*(?:"([^"]*)"|([^;,\s]+))', links, re.IGNORECASE)
+        require(not any("next" in (quoted or token).lower().split() for quoted, token in relations),
+                "Unexpected paginated dependency comparison; refusing incomplete review")
+        data = response.read(LIMIT + 1)
+        require(len(data) <= LIMIT, "Dependency comparison exceeds size limit")
+        changes = decode_json(data)
+        require(isinstance(changes, list), "Invalid dependency comparison")
+        return True
 
 
 def wait_for_snapshots(github, event, timeout, sleep=time.sleep, clock=time.monotonic):

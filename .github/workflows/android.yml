@@ -59,7 +59,7 @@ jobs:
           print('Optimized unsigned APK verified:', apk.stat().st_size, 'bytes; SHA256', hashlib.sha256(apk.read_bytes()).hexdigest())
           PY
       - name: Set up pinned PNG reference runtime
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '26.13.0'
       - name: Check PNG outputs with pinned SillyTavern reader
@@ -114,11 +114,11 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: TavernForge-*-${{ github.sha }}
           path: dist
       - name: Attest APK provenance
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: dist/**/*.apk

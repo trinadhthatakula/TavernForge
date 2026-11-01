@@ -1,6 +1,6 @@
 # TavernForge test-build guide
 
-Baseline: [project kickoff charter](../TavernForge_Project_Kickoff.html). [Current status](STATUS.md) and [verification evidence](testing/AUTONOMOUS_VERIFICATION.md) identify the exact tested build and remaining limits. This guide covers the 0.5 feature branch as it is integrated.
+Baseline: [project kickoff charter](../TavernForge_Project_Kickoff.html). [Current status](STATUS.md) and [verification evidence](testing/AUTONOMOUS_VERIFICATION.md) identify the exact tested build and remaining limits. This guide covers the merged 0.5.0-internal test build.
 
 ## Your local library
 

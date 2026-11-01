@@ -9,7 +9,7 @@ import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-enum class ProjectSort { RECENT, TITLE }
+enum class ProjectSort { RECENT, TITLE, OLDEST }
 
 interface LibraryPreferences {
     val sort: Flow<ProjectSort>
@@ -35,5 +35,6 @@ internal fun visibleProjects(projects: List<ProjectSummary>, query: String, sort
     return when (sort) {
         ProjectSort.RECENT -> filtered.sortedWith(compareByDescending<ProjectSummary> { it.updatedAtEpochMillis }.thenBy { it.id })
         ProjectSort.TITLE -> filtered.sortedWith(compareBy<ProjectSummary> { it.title.lowercase(Locale.ROOT) }.thenBy { it.id })
+        ProjectSort.OLDEST -> filtered.sortedWith(compareBy<ProjectSummary> { it.createdAtEpochMillis }.thenBy { it.id })
     }
 }

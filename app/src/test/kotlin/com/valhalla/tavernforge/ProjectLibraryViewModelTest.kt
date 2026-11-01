@@ -5,6 +5,11 @@ import com.valhalla.tavernforge.core.model.ProjectSummary
 import com.valhalla.tavernforge.core.model.SourceEnvelope
 import com.valhalla.tavernforge.core.model.SourceFormat
 import com.valhalla.tavernforge.core.model.StoredProject
+import com.valhalla.tavernforge.core.model.ProjectMetadata
+import com.valhalla.tavernforge.core.model.LibraryEntry
+import com.valhalla.tavernforge.core.model.LibraryQuery
+import com.valhalla.tavernforge.core.model.LibrarySort
+import com.valhalla.tavernforge.core.model.LibraryDraftFilter
 import com.valhalla.tavernforge.data.ProjectRepository
 import com.valhalla.tavernforge.data.ProjectStorageError
 import com.valhalla.tavernforge.data.ProjectStorageException
@@ -16,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -214,12 +220,50 @@ class ProjectLibraryViewModelTest {
         advanceUntilIdle()
         assertEquals(listOf("Alpha", "Zebra"), vm.state.value.visibleProjects.map { it.title })
         vm.setQuery("ZEBRA.JSON")
+        advanceUntilIdle()
         assertEquals(listOf("Zebra"), vm.state.value.visibleProjects.map { it.title })
         vm.setSort(ProjectSort.RECENT)
         advanceUntilIdle()
         assertEquals(ProjectSort.RECENT, preferences.sort.value)
         val second = model(); advanceUntilIdle()
         assertEquals(ProjectSort.RECENT, second.state.value.sort)
+    }
+
+    @Test fun localTagsUseMetadataRevisionAndLeaveNativeJsonUnchanged() = runTest(dispatcher) {
+        val source = SourceEnvelope(card("Keeper"))
+        val saved = repository.saveImported("keeper.json", source)
+        val vm = model(); vm.openProject(saved.id); advanceUntilIdle()
+        vm.editLocalTags(); advanceUntilIdle(); vm.addLocalTag(); vm.updateLocalTag(0, "  Favorites  ")
+        vm.saveLocalTags(); advanceUntilIdle()
+        assertNull(vm.state.value.tagEditor)
+        assertEquals(listOf("Favorites"), vm.state.value.libraryMetadata.getValue(saved.id).tags)
+        assertEquals(1L, repository.projectMetadata(saved.id).revision)
+        assertArrayEquals(source.bytes(), repository.load(saved.id).source.bytes())
+        assertArrayEquals(source.bytes(), repository.load(saved.id).currentSource.bytes())
+    }
+
+    @Test fun duplicateLocalTagsAndStaleRevisionKeepTheReviewOpen() = runTest(dispatcher) {
+        val saved = repository.saveImported("keeper.json", SourceEnvelope(card("Keeper")))
+        val vm = model(); vm.openProject(saved.id); advanceUntilIdle(); vm.editLocalTags(); advanceUntilIdle()
+        vm.addLocalTag(); vm.updateLocalTag(0, "Lore"); vm.addLocalTag(); vm.updateLocalTag(1, "lore")
+        vm.saveLocalTags(); advanceUntilIdle()
+        assertTrue(vm.state.value.tagEditor!!.error!!.contains("distinct"))
+        assertEquals(0, repository.tagWrites)
+        vm.removeLocalTag(1)
+        repository.setProjectTags(saved.id, 0, listOf("External change"))
+        vm.saveLocalTags(); advanceUntilIdle()
+        assertEquals(ProjectStorageError.REVISION_CONFLICT, vm.state.value.storageFailure)
+        assertEquals(listOf("Lore"), vm.state.value.tagEditor!!.tags)
+        assertEquals(listOf("External change"), repository.projectMetadata(saved.id).tags)
+    }
+
+    @Test fun allLibraryFiltersReachRepositoryTogetherAndClearingKeepsSearchAndSort() = runTest(dispatcher) {
+        val vm = model(); advanceUntilIdle()
+        vm.setQuery("keeper"); vm.toggleFormatFilter(SourceFormat.V3); vm.setDraftFilter(LibraryDraftFilter.VALID)
+        vm.toggleTagFilter("Local tag"); vm.setSort(ProjectSort.OLDEST); advanceUntilIdle()
+        assertEquals(LibraryQuery("keeper", setOf(SourceFormat.V3), LibraryDraftFilter.VALID, setOf("Local tag"), LibrarySort.OLDEST), repository.queries.last())
+        vm.clearLibraryFilters(); advanceUntilIdle()
+        assertEquals(LibraryQuery(search = "keeper", sort = LibrarySort.OLDEST), repository.queries.last())
     }
 
     private class FakePreferences : LibraryPreferences {
@@ -234,7 +278,22 @@ class ProjectLibraryViewModelTest {
         var duplicates = 0
         var gate: CompletableDeferred<Unit>? = null
         var failure: ProjectStorageError? = null
+        var tagWrites = 0
+        val queries = mutableListOf<LibraryQuery>()
+        private val metadata = MutableStateFlow<Map<String, ProjectMetadata>>(emptyMap())
         override fun observeProjects() = projects
+        override fun observeLibrary(query: LibraryQuery): kotlinx.coroutines.flow.Flow<List<LibraryEntry>> {
+            queries += query
+            return combine(super.observeLibrary(query), metadata) { entries, tags ->
+                entries.map { it.copy(metadata = tags[it.summary.id] ?: ProjectMetadata(it.summary.id, 0, emptyList())) }
+            }
+        }
+        override suspend fun projectMetadata(id: String) = metadata.value[id] ?: ProjectMetadata(id, 0, emptyList())
+        override suspend fun setProjectTags(id: String, expectedMetadataRevision: Long, tags: List<String>): ProjectMetadata {
+            if (projectMetadata(id).revision != expectedMetadataRevision) throw ProjectStorageException(ProjectStorageError.REVISION_CONFLICT, "Changed metadata")
+            tagWrites++
+            return ProjectMetadata(id, expectedMetadataRevision + 1, tags).also { metadata.value = metadata.value + (id to it) }
+        }
         private fun publish() { projects.value = documents.values.map { it.summary } }
         private suspend fun checkFailure() {
             gate?.await()

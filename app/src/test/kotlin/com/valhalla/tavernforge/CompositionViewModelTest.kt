@@ -3,6 +3,9 @@ package com.valhalla.tavernforge
 import androidx.lifecycle.ViewModelStore
 import com.valhalla.tavernforge.core.model.*
 import com.valhalla.tavernforge.data.ProjectRepository
+import com.valhalla.tavernforge.data.ArtworkCodec
+import com.valhalla.tavernforge.data.ArtworkImageInfo
+import com.valhalla.tavernforge.data.ConvertedArtwork
 import com.valhalla.tavernforge.format.*
 import com.valhalla.tavernforge.format.png.*
 import kotlinx.coroutines.Dispatchers
@@ -29,10 +32,11 @@ class CompositionViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val cards = CharacterCardEngine()
     private val repository = MediaRepository(cards)
+    private val codec = FakeArtworkCodec()
     private val stores = mutableListOf<ViewModelStore>()
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun cleanup() { stores.forEach(ViewModelStore::clear); Dispatchers.resetMain() }
-    private fun model() = CompositionViewModel(cards, repository, null, null, dispatcher).also { vm ->
+    private fun model() = CompositionViewModel(cards, repository, null, null, dispatcher, codec).also { vm ->
         stores += ViewModelStore().also { it.put("media", vm) }
     }
     private fun cardPng() = syntheticPng("chara" to Base64.getEncoder().encode(cards.createV2("Original").source.bytes()))
@@ -91,6 +95,53 @@ class CompositionViewModelTest {
         assertNull(vm.state.value.notice)
     }
 
+    @Test fun jpegIntakeValidatesWithoutReencodingAndKeepsOwnedOriginalBytes() = runTest(dispatcher) {
+        val bytes = byteArrayOf(-1, -40, 1, 2, -1, -39); val original = bytes.copyOf(); val vm = model()
+        vm.inspectSource { ImportedBytes("original.jpg", bytes) }; advanceUntilIdle()
+        assertEquals(1, codec.inspections); assertEquals(0, codec.conversions)
+        assertNotNull(vm.state.value.jpegPreview); assertNull(vm.state.value.importPreview); assertTrue(repository.art.isEmpty())
+        bytes.fill(0); vm.saveArtwork(); advanceUntilIdle()
+        assertArrayEquals(original, repository.art.values.single().bytes()); assertEquals("image/jpeg", repository.art.values.single().summary.mediaType)
+        assertNull(vm.state.value.jpegPreview); assertEquals(0, codec.conversions)
+    }
+
+    @Test fun originalJpegExportUsesJpegPickerAndExactFrozenBytes() = runTest(dispatcher) {
+        val bytes = byteArrayOf(-1, -40, 1, 2, -1, -39)
+        val saved = repository.saveArtwork("original.jpeg", bytes); val vm = model()
+        vm.prepareArtworkExport(saved.id); advanceUntilIdle()
+        assertEquals("image/jpeg", vm.state.value.exportPreview!!.mediaType)
+        assertTrue(vm.state.value.exportPreview!!.originalArtwork)
+        vm.approvePngExport(); advanceUntilIdle(); assertEquals("original.jpg", vm.takePngDestination())
+        var exported: ByteArray? = null
+        vm.completePngTo(true) { exported = it }; advanceUntilIdle()
+        assertArrayEquals(bytes, exported); assertEquals(0, codec.conversions)
+    }
+
+    @Test fun jpegCannotBeSilentlyConvertedByPngCardExport() = runTest(dispatcher) {
+        val saved = repository.saveImported("card.json", cards.createV2("Card").source)
+        val artwork = repository.saveArtwork("original.jpg", byteArrayOf(-1, -40, 1, 2, -1, -39))
+        repository.composition = ProjectComposition(saved.id, 0, 0, artwork, null, null, emptyList())
+        val vm = model(); vm.open(saved.id); advanceUntilIdle(); vm.preparePngExport(); advanceUntilIdle()
+        assertNull(vm.state.value.exportPreview); assertTrue(vm.state.value.error!!.contains("Review a PNG conversion"))
+        assertEquals(0, codec.conversions); assertEquals(1, repository.art.size)
+    }
+
+    @Test fun rejectedJpegNeverCreatesAPreviewOrSavedArtwork() = runTest(dispatcher) {
+        codec.reject = true; val vm = model()
+        vm.inspectSource { ImportedBytes("bad.jpg", byteArrayOf(-1, -40, 0, 0)) }; advanceUntilIdle()
+        assertNull(vm.state.value.jpegPreview); assertNotNull(vm.state.value.error); assertTrue(repository.art.isEmpty())
+    }
+
+    /** This tests the UI codec boundary, not platform JPEG decoding. */
+    private class FakeArtworkCodec : ArtworkCodec {
+        var inspections = 0; var conversions = 0; var reject = false
+        override fun inspectJpeg(bytes: ByteArray): ArtworkImageInfo {
+            inspections++; if (reject) throw IOException("Synthetic decode rejection")
+            return ArtworkImageInfo(1, 1)
+        }
+        override fun jpegToPng(bytes: ByteArray): ConvertedArtwork { conversions++; error("UI must not silently convert") }
+    }
+
     private class MediaRepository(private val cards: CharacterCardEngine) : ProjectRepository {
         val docs = linkedMapOf<String, StoredProject>()
         val art = linkedMapOf<String, StoredArtwork>()
@@ -108,8 +159,10 @@ class CompositionViewModelTest {
         }
         override suspend fun load(id: String) = docs.getValue(id)
         override suspend fun saveArtwork(fileName: String, bytes: ByteArray): ArtworkSummary {
-            val container = (png.inspect(bytes) as PngInspectionResult.Success).container
-            val summary = ArtworkSummary("a-${art.size}", fileName, container.sha256, bytes.size, container.width, container.height, container.isAnimated, 1)
+            val jpeg = bytes.size >= 2 && bytes[0] == 0xff.toByte() && bytes[1] == 0xd8.toByte()
+            val container = if (jpeg) null else (png.inspect(bytes) as PngInspectionResult.Success).container
+            val summary = ArtworkSummary("a-${art.size}", fileName, SourceEnvelope(bytes).sha256, bytes.size, container?.width ?: 1, container?.height ?: 1,
+                container?.isAnimated ?: false, 1, if (jpeg) "image/jpeg" else "image/png")
             art[summary.id] = StoredArtwork(summary, bytes); images.value = art.values.map { it.summary }; return summary
         }
         override suspend fun loadArtwork(id: String) = art.getValue(id)

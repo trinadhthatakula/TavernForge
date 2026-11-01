@@ -35,6 +35,7 @@ dependencies {
     implementation(project(":data"))
     implementation(project(":format"))
     implementation(libs.datastore.preferences)
+    implementation(libs.exifinterface)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)

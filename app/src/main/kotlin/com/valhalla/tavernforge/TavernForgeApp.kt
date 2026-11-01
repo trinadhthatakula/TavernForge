@@ -65,13 +65,15 @@ import kotlinx.serialization.Serializable
 @Serializable private data object CreateManual : NavKey
 @Serializable private data class Composition(val characterId: String? = null) : NavKey
 @Serializable private data class Generation(val projectId: String? = null) : NavKey
+@Serializable private data object Backup : NavKey
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: CompositionViewModel, generationViewModel: GenerationViewModel) {
+fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: CompositionViewModel, generationViewModel: GenerationViewModel, backupViewModel: BackupViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val compositionState by compositionViewModel.state.collectAsStateWithLifecycle()
     val generationState by generationViewModel.state.collectAsStateWithLifecycle()
+    val backupState by backupViewModel.state.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Workshop)
     val adaptiveInfo = currentWindowAdaptiveInfoV2()
     val sceneStrategies = if (adaptiveInfo.windowSizeClass.isWidthAtLeastBreakpoint(
@@ -115,6 +117,7 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
     val importFile = { protectDraft { launcher.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) } }
     val closeInspector = { if (!state.busy && backStack.size > 1) backStack.removeLastOrNull(); Unit }
     val closeEditor = { protectDraft { backStack.removeLastOrNull() } }
+    val closeBackup = { if (!backupState.busy) { backupViewModel.discardReview(); backStack.removeLastOrNull() }; Unit }
     val finishCompositionClose = {
         if (backStack.getOrNull(backStack.lastIndex - 1) == Inspector) state.selectedProject?.id?.let(viewModel::openProject)
         backStack.removeLastOrNull()
@@ -122,7 +125,7 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
     }
     val closeComposition = {
         if (!compositionState.busy) {
-            if (compositionState.importPreview != null) confirmCompositionClose = true else finishCompositionClose()
+            if (compositionState.hasUnsavedImport) confirmCompositionClose = true else finishCompositionClose()
         }
         Unit
     }
@@ -164,7 +167,7 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
         NavDisplay(
             modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
             backStack = backStack,
-            onBack = { when (backStack.lastOrNull()) { Editor -> closeEditor(); is Composition -> closeComposition(); is Generation -> closeGeneration(); else -> closeInspector() } },
+            onBack = { when (backStack.lastOrNull()) { Editor -> closeEditor(); is Composition -> closeComposition(); is Generation -> closeGeneration(); Backup -> closeBackup(); else -> closeInspector() } },
             sceneStrategies = sceneStrategies,
             entryProvider = entryProvider {
                 entry<Workshop>(metadata = SupportingPaneSceneStrategy.mainPane()) {
@@ -176,7 +179,10 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
                     } }, onQuery = viewModel::setQuery, onSort = viewModel::setSort, onRetry = viewModel::refreshLibrary,
                         onCreate = { protectDraft { backStack.add(CreateManual) } },
                         onArtwork = { protectDraft { backStack.add(Composition()) } },
-                        onGenerate = { protectDraft { backStack.add(Generation()) } })
+                        onGenerate = { protectDraft { backStack.add(Generation()) } },
+                        onBackup = { protectDraft { backStack.add(Backup) } },
+                        onFormatFilter = viewModel::toggleFormatFilter, onDraftFilter = viewModel::setDraftFilter,
+                        onTagFilter = viewModel::toggleTagFilter, onClearFilters = viewModel::clearLibraryFilters)
                 }
                 entry<Inspector>(metadata = SupportingPaneSceneStrategy.supportingPane()) {
                     InspectorScreen(state, importFile, closeInspector, onClear = { protectDraft {
@@ -185,10 +191,11 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
                         onDuplicate = viewModel::duplicateProject, onDelete = viewModel::deleteProject,
                         onEdit = { if (viewModel.beginEditing()) backStack.add(Editor) }, onExport = viewModel::prepareExport,
                         onComposition = { state.selectedProject?.id?.let { backStack.add(Composition(it)) } },
-                        onGenerate = { state.selectedProject?.id?.let { backStack.add(Generation(it)) } })
+                        onGenerate = { state.selectedProject?.id?.let { backStack.add(Generation(it)) } }, onLocalTags = viewModel::editLocalTags)
                 }
                 entry<Editor> { JsonEditorScreen(state, viewModel, closeEditor) }
                 entry<CreateManual> { ManualCreationScreen(state, viewModel::createManual, closeInspector) }
+                entry<Backup> { BackupScreen(backupState, backupViewModel, closeBackup) }
                 entry<Composition> { key ->
                     LaunchedEffect(key.characterId) { compositionViewModel.open(key.characterId) }
                     CompositionScreen(compositionState, compositionViewModel, closeComposition, onOpenCharacter = { id ->
@@ -214,6 +221,7 @@ fun TavernForgeApp(viewModel: InspectionViewModel, compositionViewModel: Composi
         title = { Text("Discard generated draft and close?") }, text = { Text("This unaccepted generated content has not been saved.") },
         confirmButton = { TextButton(onClick = { confirmGenerationClose = false; generationViewModel.discardDraft(); backStack.removeLastOrNull() }) { Text("Discard and close") } },
         dismissButton = { TextButton(onClick = { confirmGenerationClose = false }) { Text("Keep draft") } })
+    state.tagEditor?.let { LocalTagsDialog(it, viewModel, state.busy) }
     if (state.recoveryAvailable) AlertDialog(onDismissRequest = {}, title = { Text("Unsaved edit recovery") },
         text = { Text(state.recoveryError ?: "An interrupted manual edit session was found. Recovery checks the original source and saved revision before applying anything. Review the recovered input and changes before saving.") },
         confirmButton = { TextButton(onClick = viewModel::recoverEdits, enabled = !state.busy && state.recoveryCanRestore) { Text("Recover for review") } },
@@ -260,6 +268,7 @@ private fun InspectorScreen(
     onExport: () -> Unit,
     onComposition: () -> Unit,
     onGenerate: () -> Unit,
+    onLocalTags: () -> Unit,
 ) {
     var renameOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
     var deleteOpen by remember(state.selectedProject?.id) { mutableStateOf(false) }
@@ -326,6 +335,7 @@ private fun InspectorScreen(
                                 OutlinedButton(onClick = onComposition, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Artwork and linked lorebooks") }
                             }
                             OutlinedButton(onClick = onGenerate, enabled = !state.busy && state.canEdit, modifier = Modifier.fillMaxWidth()) { Text("Generate a reviewed draft with Gemini") }
+                            OutlinedButton(onClick = onLocalTags, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text("Organize with local tags") }
                             OutlinedButton(onClick = { title = state.selectedProject.title; renameOpen = true },
                                 enabled = !state.busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.rename_project)) }
                             OutlinedButton(onClick = onDuplicate, enabled = !state.busy,

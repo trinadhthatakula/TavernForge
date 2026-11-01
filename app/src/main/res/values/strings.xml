@@ -1,13 +1,13 @@
 <resources>
     <string name="storage_in_use">This item is linked to another project. Remove its associations before deleting it.</string>
     <string name="app_name">TavernForge</string>
-    <string name="internal_build">INTERNAL FOUNDATION BUILD</string>
+    <string name="internal_build">INTERNAL TEST BUILD</string>
     <string name="home_title">A world of your own.</string>
     <string name="home_subtitle">Keep your characters and worlds close. Import a JSON file or create a character or lorebook in your local library.</string>
     <string name="import_json">Inspect JSON</string>
     <string name="import_another">Inspect another file</string>
     <string name="privacy_label">Local inspection · No account needed</string>
-    <string name="scope_body">Create, edit and export character V1, V2 and V3 JSON, V2 and V3 lorebooks, and native SillyTavern World Info. Manual authoring works offline. PNG cards, associations and Gemini are being integrated.</string>
+    <string name="scope_body">Create, edit and export character V1, V2 and V3 JSON, V2 and V3 lorebooks, and native SillyTavern World Info. Manual authoring, PNG artwork and local backups work offline. Gemini is optional and requires your own key and request approval.</string>
     <string name="session_note">Unsaved inspection stays in memory. Save a draft to reopen it after the app restarts.</string>
     <string name="inspect_title">File inspection</string>
     <string name="view_results">View inspection</string>
@@ -51,11 +51,11 @@
     <string name="failure_permission">Access to the file was denied. Choose it again using the system picker.</string>
     <string name="failure_read">The document provider could not read this file. Try another local copy.</string>
     <string name="library_title">Your library</string>
-    <string name="search_projects">Search titles and filenames</string>
+    <string name="search_projects">Search titles, filenames and local tags</string>
     <string name="sort_recent">Recent</string>
     <string name="sort_title">Title A–Z</string>
     <string name="library_empty">Your first story starts here. Inspect a JSON file and save it as a draft.</string>
-    <string name="search_empty">No projects match this search.</string>
+    <string name="search_empty">No projects match this search and these filters.</string>
     <string name="open_project">Open project</string>
     <string name="unsaved_draft">Unsaved draft</string>
     <string name="current_inspection">Current inspection</string>

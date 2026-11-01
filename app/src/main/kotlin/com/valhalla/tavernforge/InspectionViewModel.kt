@@ -8,6 +8,10 @@ import com.valhalla.tavernforge.core.model.ProjectSummary
 import com.valhalla.tavernforge.core.model.SourceEnvelope
 import com.valhalla.tavernforge.core.model.StoredProject
 import com.valhalla.tavernforge.core.model.SourceFormat
+import com.valhalla.tavernforge.core.model.LibraryQuery
+import com.valhalla.tavernforge.core.model.LibrarySort
+import com.valhalla.tavernforge.core.model.LibraryDraftFilter
+import com.valhalla.tavernforge.core.model.ProjectMetadata
 import com.valhalla.tavernforge.data.ProjectRepository
 import com.valhalla.tavernforge.data.ProjectStorageError
 import com.valhalla.tavernforge.data.ProjectStorageException
@@ -63,6 +67,12 @@ data class InspectionState(
     val exportPreview: ExportPreview? = null,
     val exportFailure: ExportFailure? = null,
     val manualCreated: Boolean = false,
+    val filteredProjects: List<ProjectSummary>? = null,
+    val libraryMetadata: Map<String, ProjectMetadata> = emptyMap(),
+    val formatFilters: Set<SourceFormat> = emptySet(),
+    val draftFilter: LibraryDraftFilter = LibraryDraftFilter.ALL,
+    val tagFilters: Set<String> = emptySet(),
+    val tagEditor: LocalTagEditor? = null,
     val recoveryChecking: Boolean = false,
     val recoveryAvailable: Boolean = false,
     val recoveryCanRestore: Boolean = false,
@@ -74,7 +84,7 @@ data class InspectionState(
     val hasUnsavedWork: Boolean get() = hasUnsavedDraft || editor?.hasChanges == true
     val canEdit: Boolean get() = selectedProject != null && summary?.canSaveDraft == true && summary.status != InspectionStatus.UNSUPPORTED
     val canExport: Boolean get() = selectedProject != null && summary?.status == InspectionStatus.VALID && editor == null
-    val visibleProjects: List<ProjectSummary> get() = visibleProjects(projects, query, sort)
+    val visibleProjects: List<ProjectSummary> get() = filteredProjects ?: visibleProjects(projects, query, sort)
 }
 
 enum class ImportFailure { TOO_LARGE, PERMISSION, READ }
@@ -94,6 +104,7 @@ class InspectionViewModel(
     val state = mutableState.asStateFlow()
     private var inspection: Job? = null
     private var libraryObservation: Job? = null
+    private var filteredLibraryObservation: Job? = null
     private var selectionRevision = 0L
     private var selectedSource: SourceEnvelope? = null
     private var selectedDocument: CharacterDocument? = null
@@ -132,7 +143,7 @@ class InspectionViewModel(
             } finally { mutableState.value = mutableState.value.copy(recoveryChecking = false) }
         }
         viewModelScope.launch {
-            try { preferences.sort.collect { sort -> mutableState.value = mutableState.value.copy(sort = sort) }
+            try { preferences.sort.collect { sort -> mutableState.value = mutableState.value.copy(sort = sort); observeFilteredLibrary() }
             } catch (cancelled: CancellationException) { throw cancelled
             } catch (_: IOException) { mutableState.value = mutableState.value.copy(preferenceFailed = true) }
         }
@@ -143,23 +154,88 @@ class InspectionViewModel(
         mutableState.value = mutableState.value.copy(libraryLoading = true, libraryFailed = false)
         libraryObservation = viewModelScope.launch {
             try {
-                repository.observeProjects().collect { projects ->
+                repository.observeLibrary().collect { entries ->
+                    val projects = entries.map { it.summary }
                     val current = mutableState.value
                     mutableState.value = current.copy(projects = projects, libraryLoading = false,
+                        libraryMetadata = entries.associate { it.summary.id to it.metadata },
                         selectedProject = projects.firstOrNull { it.id == current.selectedProject?.id } ?: current.selectedProject)
                 }
             } catch (cancelled: CancellationException) { throw cancelled
             } catch (_: Exception) { mutableState.value = mutableState.value.copy(libraryLoading = false, libraryFailed = true) }
         }
+        observeFilteredLibrary()
     }
 
-    fun setQuery(query: String) { mutableState.value = mutableState.value.copy(query = query.take(256)) }
+    fun setQuery(query: String) { mutableState.value = mutableState.value.copy(query = query.take(256)); observeFilteredLibrary() }
+    fun toggleFormatFilter(format: SourceFormat) {
+        val current = mutableState.value.formatFilters
+        mutableState.value = mutableState.value.copy(formatFilters = if (format in current) current - format else current + format)
+        observeFilteredLibrary()
+    }
+    fun setDraftFilter(filter: LibraryDraftFilter) { mutableState.value = mutableState.value.copy(draftFilter = filter); observeFilteredLibrary() }
+    fun toggleTagFilter(tag: String) {
+        val tags = mutableState.value.tagFilters
+        if (tag !in tags && tags.size >= 32) return
+        mutableState.value = mutableState.value.copy(tagFilters = if (tag in tags) tags - tag else tags + tag)
+        observeFilteredLibrary()
+    }
+    fun clearLibraryFilters() {
+        mutableState.value = mutableState.value.copy(formatFilters = emptySet(), draftFilter = LibraryDraftFilter.ALL, tagFilters = emptySet())
+        observeFilteredLibrary()
+    }
+    private fun observeFilteredLibrary() {
+        filteredLibraryObservation?.cancel()
+        val current = mutableState.value
+        val query = LibraryQuery(current.query, current.formatFilters, current.draftFilter, current.tagFilters,
+            when (current.sort) { ProjectSort.RECENT -> LibrarySort.RECENT; ProjectSort.TITLE -> LibrarySort.TITLE; ProjectSort.OLDEST -> LibrarySort.OLDEST })
+        filteredLibraryObservation = viewModelScope.launch {
+            try { repository.observeLibrary(query).collect { entries -> mutableState.value = mutableState.value.copy(filteredProjects = entries.map { it.summary }) }
+            } catch (e: CancellationException) { throw e
+            } catch (_: Exception) { mutableState.value = mutableState.value.copy(libraryFailed = true) }
+        }
+    }
     fun setSort(sort: ProjectSort) {
         mutableState.value = mutableState.value.copy(sort = sort, preferenceFailed = false)
+        observeFilteredLibrary()
         viewModelScope.launch {
             try { preferences.setSort(sort)
             } catch (cancelled: CancellationException) { throw cancelled
             } catch (_: IOException) { mutableState.value = mutableState.value.copy(preferenceFailed = true) }
+        }
+    }
+
+    fun editLocalTags() {
+        val project = mutableState.value.selectedProject ?: return
+        if (mutableState.value.editor != null) return
+        libraryAction(LibraryOperation.EDITING) {
+            val metadata = repository.projectMetadata(project.id)
+            mutableState.value = mutableState.value.copy(tagEditor = LocalTagEditor(project.id, project.title, metadata.revision, metadata.tags))
+        }
+    }
+    fun updateLocalTag(index: Int, text: String) {
+        val editor = mutableState.value.tagEditor ?: return
+        if (mutableState.value.busy || index !in editor.tags.indices || text.length > 64 || text.any(Char::isISOControl)) return
+        mutableState.value = mutableState.value.copy(tagEditor = editor.copy(tags = editor.tags.toMutableList().also { it[index] = text }, error = null))
+    }
+    fun addLocalTag() {
+        val editor = mutableState.value.tagEditor ?: return
+        if (!mutableState.value.busy && editor.tags.size < 32) mutableState.value = mutableState.value.copy(tagEditor = editor.copy(tags = editor.tags + "", error = null))
+    }
+    fun removeLocalTag(index: Int) {
+        val editor = mutableState.value.tagEditor ?: return
+        if (!mutableState.value.busy) mutableState.value = mutableState.value.copy(tagEditor = editor.copy(tags = editor.tags.filterIndexed { i, _ -> i != index }, error = null))
+    }
+    fun dismissLocalTags() { if (!mutableState.value.busy) mutableState.value = mutableState.value.copy(tagEditor = null) }
+    fun saveLocalTags() {
+        val editor = mutableState.value.tagEditor ?: return
+        val tags = editor.tags.map(String::trim)
+        if (tags.any(String::isEmpty) || tags.map { it.lowercase(java.util.Locale.ROOT) }.distinct().size != tags.size) {
+            mutableState.value = mutableState.value.copy(tagEditor = editor.copy(error = "Use distinct nonempty tags; comparison ignores letter case.")); return
+        }
+        libraryAction(LibraryOperation.EDITING) {
+            repository.setProjectTags(editor.projectId, editor.revision, tags)
+            mutableState.value = mutableState.value.copy(tagEditor = null)
         }
     }
 

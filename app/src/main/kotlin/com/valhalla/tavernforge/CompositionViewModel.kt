@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.valhalla.tavernforge.core.model.*
 import com.valhalla.tavernforge.data.ProjectRepository
 import com.valhalla.tavernforge.data.ProjectStorageException
+import com.valhalla.tavernforge.data.ArtworkCodec
+import com.valhalla.tavernforge.data.AndroidArtworkCodec
+import com.valhalla.tavernforge.data.ArtworkPngConversionPlan
 import com.valhalla.tavernforge.format.*
 import com.valhalla.tavernforge.format.combine.EmbeddingPlan
 import com.valhalla.tavernforge.format.combine.EmbeddingPlanResult
@@ -19,8 +22,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 data class PngImportPreview(val fileName: String, val container: PngContainer, val selectedCandidateId: String?, val needsChoice: Boolean)
+class JpegImportPreview(val fileName: String, val width: Int, val height: Int, bytes: ByteArray) {
+    private val content = bytes.copyOf()
+    fun bytes() = content.copyOf()
+}
 data class CompositionExportPreview(val id: Long, val fileName: String, val revision: Long, val reviewItems: List<String>,
-    val pickerReady: Boolean = false, val pickerLaunched: Boolean = false)
+    val pickerReady: Boolean = false, val pickerLaunched: Boolean = false,
+    val sourceFormat: SourceFormat = SourceFormat.UNKNOWN, val removedFormats: List<SourceFormat> = emptyList(),
+    val mediaType: String = "image/png", val originalArtwork: Boolean = false)
 data class EmbeddedBookPreview(val lorebookId: String, val name: String, val compositionRevision: Long, val plan: EmbeddingPlan)
 data class CompositionState(
     val working: Boolean = false,
@@ -29,12 +38,15 @@ data class CompositionState(
     val projects: List<ProjectSummary> = emptyList(),
     val artwork: List<ArtworkSummary> = emptyList(),
     val importPreview: PngImportPreview? = null,
+    val jpegPreview: JpegImportPreview? = null,
+    val conversionPreview: ArtworkPngConversionPlan? = null,
     val exportPreview: CompositionExportPreview? = null,
     val embeddingPreview: EmbeddedBookPreview? = null,
     val error: String? = null,
     val notice: String? = null,
 ) {
-    val busy get() = working || exportPreview != null || embeddingPreview != null
+    val busy get() = working || exportPreview != null || embeddingPreview != null || conversionPreview != null
+    val hasUnsavedImport get() = importPreview != null || jpegPreview != null
     val lorebooks get() = projects.filter { it.sourceFormat in setOf(SourceFormat.LOREBOOK_V2, SourceFormat.LOREBOOK_V3, SourceFormat.WORLD_INFO) }
 }
 
@@ -44,6 +56,7 @@ class CompositionViewModel(
     private val reader: DocumentReader?,
     private val writer: DocumentWriter?,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val artworkCodec: ArtworkCodec = AndroidArtworkCodec(),
 ) : ViewModel() {
     private val png = PngCardEngine(cards = cards)
     private val mutableState = MutableStateFlow(CompositionState())
@@ -78,12 +91,17 @@ class CompositionViewModel(
     fun inspectPng(uri: Uri) = inspectSource { requireNotNull(reader).read(uri, png.limits.maxBytes) }
     internal fun inspectSource(read: suspend () -> ImportedBytes) = action {
         val imported = read()
+        if (imported.bytes.size >= 2 && imported.bytes[0] == 0xff.toByte() && imported.bytes[1] == 0xd8.toByte()) {
+            val info = withContext(dispatcher) { artworkCodec.inspectJpeg(imported.bytes) }
+            mutableState.value = mutableState.value.copy(jpegPreview = JpegImportPreview(imported.displayName, info.width, info.height, imported.bytes), importPreview = null)
+            return@action
+        }
         when (val inspected = withContext(dispatcher) { png.inspect(imported.bytes) }) {
             is PngInspectionResult.Failure -> mutableState.value = mutableState.value.copy(error = inspected.issues.joinToString("\n") { it.message })
             is PngInspectionResult.Success -> {
                 val selection = png.select(inspected.container)
                 mutableState.value = mutableState.value.copy(importPreview = PngImportPreview(imported.displayName, inspected.container,
-                    (selection as? PngSelectionResult.Selected)?.candidate?.id, selection is PngSelectionResult.NeedsChoice))
+                    (selection as? PngSelectionResult.Selected)?.candidate?.id, selection is PngSelectionResult.NeedsChoice), jpegPreview = null)
             }
         }
     }
@@ -93,7 +111,7 @@ class CompositionViewModel(
         if (png.select(preview.container, id) !is PngSelectionResult.Selected) return
         mutableState.value = mutableState.value.copy(importPreview = preview.copy(selectedCandidateId = id, needsChoice = false))
     }
-    fun discardImport() { if (!mutableState.value.busy) mutableState.value = mutableState.value.copy(importPreview = null) }
+    fun discardImport() { if (!mutableState.value.busy) mutableState.value = mutableState.value.copy(importPreview = null, jpegPreview = null) }
     fun savePngCard() {
         val preview = mutableState.value.importPreview ?: return
         val candidate = preview.selectedCandidateId ?: return
@@ -104,11 +122,32 @@ class CompositionViewModel(
         }
     }
     fun saveArtwork() {
-        val preview = mutableState.value.importPreview ?: return
+        val preview = mutableState.value.importPreview
+        val jpeg = mutableState.value.jpegPreview
+        if (preview == null && jpeg == null) return
         action {
-            repository.saveArtwork(preview.fileName, preview.container.bytes())
-            mutableState.value = mutableState.value.copy(importPreview = null, notice = "Original PNG saved to the artwork library.")
+            repository.saveArtwork(preview?.fileName ?: requireNotNull(jpeg).fileName, preview?.container?.bytes() ?: requireNotNull(jpeg).bytes())
+            mutableState.value = mutableState.value.copy(importPreview = null, jpegPreview = null, notice = "Original artwork saved without re-encoding.")
         }
+    }
+    fun prepareJpegConversion(id: String) = action {
+        val plan = repository.prepareArtworkPngConversion(id)
+        mutableState.value = mutableState.value.copy(conversionPreview = plan)
+    }
+    fun cancelJpegConversion() { if (!mutableState.value.working) mutableState.value = mutableState.value.copy(conversionPreview = null) }
+    fun acceptJpegConversion() {
+        val plan = mutableState.value.conversionPreview ?: return
+        action(allowPreview = true) {
+            repository.acceptArtworkPngConversion(plan, plan.reviewItems.toSet())
+            mutableState.value = mutableState.value.copy(conversionPreview = null, notice = "Derived PNG saved; the original JPEG remains retained. Select the PNG explicitly to use it for card export.")
+        }
+    }
+    fun prepareArtworkExport(id: String) = action {
+        val artwork = repository.loadArtwork(id)
+        exportPlan = null; exportBytes = artwork.bytes()
+        mutableState.value = mutableState.value.copy(exportPreview = CompositionExportPreview(++exportId,
+            artwork.summary.fileName.substringBeforeLast('.', artwork.summary.fileName).take(100) + if (artwork.summary.mediaType == "image/jpeg") ".jpg" else ".png",
+            0, emptyList(), mediaType = artwork.summary.mediaType, originalArtwork = true))
     }
     fun setArtwork(id: String?) {
         val composition = mutableState.value.composition ?: return
@@ -150,23 +189,28 @@ class CompositionViewModel(
     fun preparePngExport() {
         val composition = mutableState.value.composition ?: return
         val artwork = composition.artwork ?: composition.sourcePng ?: return
+        if (artwork.mediaType != "image/png") {
+            mutableState.value = mutableState.value.copy(error = "JPEG originals stay unchanged. Review a PNG conversion in the artwork library, then explicitly select the derived PNG for card export.")
+            return
+        }
         action {
             val freshComposition = repository.loadComposition(composition.characterId)
             if (freshComposition.compositionRevision != composition.compositionRevision || freshComposition.documentRevision != composition.documentRevision)
                 throw IllegalStateException("stale")
             val saved = repository.load(composition.characterId)
             val image = repository.loadArtwork(artwork.id)
+            val container = withContext(dispatcher) { (png.inspect(image.bytes()) as? PngInspectionResult.Success)?.container }
             val plan = withContext(dispatcher) {
                 val doc = (cards.restore(saved.source, saved.currentSource, saved.documentRevision) as? ParseResult.Success)?.document
                     ?: return@withContext null
-                val container = (png.inspect(image.bytes()) as? PngInspectionResult.Success)?.container ?: return@withContext null
-                png.planExport(container, doc)
+                png.planExport(container ?: return@withContext null, doc)
             }
             when (plan) {
                 is PngExportPlanResult.Ready -> {
                     exportPlan = plan.plan
                     mutableState.value = mutableState.value.copy(exportPreview = CompositionExportPreview(++exportId,
-                        exportFileName(saved.summary.sourceFileName).removeSuffix(".json") + ".png", saved.documentRevision, plan.plan.reviewItems))
+                        exportFileName(saved.summary.sourceFileName).removeSuffix(".json") + ".png", saved.documentRevision, plan.plan.reviewItems,
+                        sourceFormat = saved.summary.sourceFormat, removedFormats = container?.candidates?.map { it.document?.sourceFormat ?: SourceFormat.UNKNOWN }.orEmpty()))
                 }
                 is PngExportPlanResult.Failure -> mutableState.value = mutableState.value.copy(error = plan.issues.joinToString("\n") { it.message }.ifBlank { "This PNG cannot be exported safely." })
                 null -> mutableState.value = mutableState.value.copy(error = "Could not restore the character or artwork for export.")
@@ -175,8 +219,12 @@ class CompositionViewModel(
     }
     fun approvePngExport() {
         val preview = mutableState.value.exportPreview ?: return
-        val plan = exportPlan ?: return
         if (preview.pickerReady || preview.pickerLaunched) return
+        if (preview.originalArtwork && exportBytes != null) {
+            mutableState.value = mutableState.value.copy(exportPreview = preview.copy(pickerReady = true))
+            return
+        }
+        val plan = exportPlan ?: return
         action(allowPreview = true) {
             when (val result = withContext(dispatcher) { png.export(plan, plan.reviewItems.toSet()) }) {
                 is PngExportResult.Success -> {
@@ -205,7 +253,7 @@ class CompositionViewModel(
         if (!preview.pickerLaunched || mutableState.value.working) return
         if (!accepted) { clearExport(); return }
         action(allowPreview = true) {
-            try { write(bytes); mutableState.value = mutableState.value.copy(notice = "PNG exported.")
+            try { write(bytes); mutableState.value = mutableState.value.copy(notice = if (preview.originalArtwork) "Original artwork exported." else "PNG exported.")
             } catch (e: CancellationException) { throw e
             } catch (_: Exception) { mutableState.value = mutableState.value.copy(error = "Export failed. The provider may retain a partial file.")
             } finally { clearExport() }
@@ -223,7 +271,7 @@ class CompositionViewModel(
                 com.valhalla.tavernforge.data.ProjectStorageError.REVISION_CONFLICT -> "The project changed. Refresh it before trying again."
                 else -> "The local operation failed. Your saved originals remain available."
             })
-            } catch (_: DocumentTooLargeException) { mutableState.value = mutableState.value.copy(error = "The PNG exceeds the 32 MiB input limit.")
+            } catch (_: DocumentTooLargeException) { mutableState.value = mutableState.value.copy(error = "The artwork exceeds the 32 MiB input limit.")
             } catch (_: SecurityException) { mutableState.value = mutableState.value.copy(error = "Permission to read this document was revoked. Select it again.")
             } catch (_: Exception) { mutableState.value = mutableState.value.copy(error = "The operation could not complete. Refresh the project or select the file again.")
             } finally { mutableState.value = mutableState.value.copy(working = false) }

@@ -30,7 +30,7 @@ internal fun BackupScreen(state: BackupState, model: BackupViewModel, onClose: (
     val exportPicker = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip"), model::completeExport)
     val restorePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument(), model::completeRestore)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        item { TextButton(onClick = onClose, enabled = !state.busy) { Text("Back to library") } }
+        item { TextButton(onClick = onClose, enabled = !state.busy) { Text("Close backup") } }
         item { Text("Library backup", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() }) }
         item { Text("Keep a portable copy of saved projects, original and edited JSON, artwork, artwork associations, linked lorebooks and local tags. Backup and restore work offline.") }
         item { Text("API keys, provider request previews, unsaved edits and edit recovery files are excluded. The archive is not encrypted; choose a destination you trust.") }

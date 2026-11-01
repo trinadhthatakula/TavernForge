@@ -18,30 +18,42 @@ No legacy duplicate `isMinifyEnabled`/`isShrinkResources` settings, custom keep 
 | Ktor/OkHttp | `HttpClient(OkHttp)` names the engine explicitly. Gemini JSON is handled through bounded wire/JSON code. OkHttp 5.5.1's AAR supplies its own optional-platform/annotation warning rules. | Open Gemini controls without sending a request. Any live HTTP/provider result remains a separate reviewed-key test. |
 | Resources | Source review found no `Resources.getIdentifier` or dynamic resource-name lookup. Manifest entry points and normal Compose resource references remain visible to AGP/R8. | Check launcher, theme, labels, icons, document pickers and images in the optimized app. |
 
-Consumer rules were read from the exact cached artifacts selected by the current debug runtime lockfile. The release resolved graph and merged R8 configuration must confirm the release selection before this audit is treated as release-artifact evidence. Library-supplied rules are retained as upstream contracts; their presence is not proof that every optional library path is exercised.
+Consumer rules were read from the exact cached artifacts and checked against the release resolved graph and merged R8 configuration. Library-supplied rules are retained as upstream contracts; their presence is not proof that every optional library path is exercised.
 
 ## Build and artifact checks
 
-The supervisor is the sole Gradle/device owner. The first suggested command was:
+Early task-selection failures are retained in external evidence logs. The initial release-test task was absent under AGP 9's debug-only host-test default. Enabling resource-aware host tests and explicitly enabling the release host test through `androidComponents.beforeVariants` resolves both that selection and Compose Preview task discovery. `:app:tasks --all` now succeeds; this also verifies that task listing realizes both variants correctly. No test-runner/default-value bypass was added.
+
+The final full command passed in 1m22s (`hardening-build6.log`):
 
 ```sh
-./gradlew :app:assembleRelease :app:lintRelease :app:testReleaseUnitTest --write-locks --offline --no-daemon --console plain
+ANDROID_HOME=/Users/trinadhthatakula/Library/Android/sdk ./gradlew :app:tasks --all :core:model:test :format:test :data:testDebugUnitTest :app:testDebugUnitTest :app:testReleaseUnitTest :app:assembleDebug :app:assembleRelease :app:lintDebug :app:lintRelease :data:lintDebug --offline --no-daemon --console plain
 ```
 
-That command **failed during task selection** because `:app:testReleaseUnitTest` does not exist in this configured build. No source/build tasks ran in that attempt. The command is recorded as failure evidence, not as a runnable verification instruction.
+JUnit XML reports **348 unique product cases**: 13 model, 128 format, 114 data and 93 app, with zero failures/errors/skips. Release host tests repeat the same 93 app cases and also pass; they do not increase the unique count or prove minified runtime behavior. App debug/release and data debug lint report zero issues. The existing Koin 2.4.21 adapter support-range warning remains documented; no approved versions changed.
 
-[AGP 9.0's documented default change](https://developer.android.com/build/releases/agp-9-0-0-release-notes#behavior-changes) explains the result: `android.onlyEnableUnitTestForTheTestedBuildType` defaults to `true`, so the default tested `debug` build type receives unit tests. The same default and selection logic were confirmed in the pinned AGP 9.5.0 classes `BooleanOption` and `VariantManager`. This is unrelated to enabling R8. The existing debug JVM tests remain the source-level regression suite; runtime validation must exercise the optimized APK. No persistent testing override was added merely to repeat the same unminified JVM tests.
+Only configuration memberships were added to existing locked product dependencies. Four newly used Compose mapping-tool coordinates were also locked: Kotlin compose-group-mapping 2.4.21, its Kotlin stdlib 2.2.21, and ASM/ASM-tree 9.9.1. These are `composeMappingProducerClasspath` tooling, not runtime upgrades. The runtime notice inventory exactly matches 184 release-runtime coordinates.
 
-The subsequent `:app:tasks --all` attempt failed while creating `generateDebugComposePreviewRunfiles`: Compose Preview requires Android resources, while `testOptions.unitTests.isIncludeAndroidResources` was false. The failure is recorded in the supervisor's `hardening-tasks.log`; it is a preview/test setup failure rather than an R8 compile error. [Android's Robolectric setup](https://developer.android.com/training/testing/local-tests/robolectric) and the cached AGP 9.5 `UnitTestOptions` API expose `isIncludeAndroidResources = true`. This setting adds resources/manifest preparation to host tests; it does not change production debuggability, release signing, optimization, or automatically select a test runner. `isReturnDefaultValues` is a separate setting and remains false. Any fix still needs a successful task listing and the existing app JVM suite.
+After the pinned protobuf attribution was added to the bundled notices, an asset-only rebuild passed in 25s (`hardening-build7.log`). A final backup close-label correction was rebuilt and linted with the same command in 1m2s (`hardening-build8.log`):
 
-The first actual release resolution must add the newly exercised release configurations to existing dependency locks without changing approved dependency pins. After reviewing that diff, repeat only checks justified by resulting fixes. Capture the unsigned APK's SHA-256, byte size, package/version/SDK metadata, non-debuggable manifest state and merged R8 outputs (`mapping.txt`, `configuration.txt`, `usage.txt` where generated). Check missing-class diagnostics instead of pasting generated suppression rules without understanding the missing dependency.
+```sh
+ANDROID_HOME=/Users/trinadhthatakula/Library/Android/sdk ./gradlew :app:assembleDebug :app:assembleRelease :app:lintDebug :app:lintRelease --offline --no-daemon --console plain
+```
 
-For emulator testing, sign a copy of the unsigned APK outside the repository using the already established local test signer, without adding signing material or passwords to source, tool output or documentation. Keep the unsigned artifact and its digest separate from the signed test copy. Do not replace the user's phone build with an incompatible signer or erase app data to force installation.
+Final unsigned artifact: `app/build/outputs/apk/release/app-release-unsigned.apk`, **2,373,770 bytes**, SHA-256 `cf4bb80acc0b7749f12b58b4477e4f6e747874888f4f58da3fd83044a27fbc6b`. `aapt2 dump badging` confirms package `com.valhalla.tavernforge`, version **0.6.0-internal/code 6**, min SDK 26, target 37 and no `application-debuggable`. ZIP integrity and dex presence pass; packaged notices match the audited asset byte-for-byte. `apksigner verify` deliberately fails with missing signature metadata, confirming this file is unsigned.
 
-## Verification status
+R8 outputs include a 49,729,646-byte `mapping.txt`, 51,775-byte merged `configuration.txt`, seeds, removed-code usage, resource analysis and Compose mapping metadata. Room/serialization consumer rules are present; no missing-class failure or blanket app suppression was added. CI now verifies the unsigned optimized APK, bundled notice equality and mapping presence, retains R8 metadata alongside each commit's artifact, and attests both APKs on main. GitHub execution is recorded in status when completed.
 
-- Implemented: release optimization configuration and focused source/consumer-rule audit.
-- Verified by inspection: current Android guidance and the pinned AGP API expose the selected DSL; no custom keep or warning-suppression rules were introduced.
-- Attempted: initial release command stopped at missing-task selection; it produced no passing build/test evidence.
-- Awaiting supervisor execution: task inventory, corrected release resolution/build/lint, merged configuration and APK metadata, then optimized-app emulator workflows.
-- Still separate: production signing/distribution, distribution-specific third-party notices, physical-device/minimum-SDK coverage and live Gemini verification. An optimized internal APK is not a release-readiness sign-off.
+## Optimized runtime evidence
+
+A copy signed with the established local debug identity for internal testing only is retained outside Git as `TavernForge-worktrees/evidence/TavernForge-0.6.0-optimized-internal.apk`. Signature verification passes; SHA-256 is `9569fded08ee1d0d20e476e6169cd223ec02e7cfe0bfda23ad5edf3486f2fda8`. No signing material or secret environment file is committed. This identity is not a production signing decision.
+
+The final copy installed with `adb -s emulator-5554 install -r` on the existing API 36 AVD; cold launch completed in **805ms**. Existing synthetic library data remained available. The same optimized source checkpoint reopened Room projects, saved a name edit as revision 2, and reopened the saved value after force-stop. Compact/medium/expanded layout, light/dark theme, 200% text, actual artwork previews, inspector hide/show, Settings, offline licenses and keyboard permission isolation were exercised; see [UI evidence](ACCESSIBILITY_REVIEW.md). No Google request was sent.
+
+The final copy also installed using `adb -s 1da5425f install -r` on the reconnected API 36 phone. Package manager confirms code 6 / 0.6.0-internal; cold launch passed in 480ms. Existing data was retained without uninstalling or clearing storage.
+
+The previously passing 26 AVD instrumentation cases are historical regression evidence from the 0.5 foundation and were not rerun for this UI/asset increment. Source-level tests, minified runtime smoke and physical installation are reported separately.
+
+## Remaining release work
+
+Production signing/distribution, broader minimum-SDK/device and TalkBack coverage, and a user-key Google smoke test remain separate. Runtime dependency notices are now bundled and their previously missing protobuf attribution is resolved through pinned upstream source. This optimized internal APK is not a community-release sign-off.

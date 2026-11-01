@@ -24,9 +24,9 @@ Lorebook controls add, duplicate, delete and reorder entries. Reordering the arr
 
 ## Import and combine
 
-Choose **Combine files → Inspect JSON** to open Android's document picker. Inspect the detected format and its diagnostics before saving. V1, V2 and V3 characters use their own rules. TavernForge preserves unknown fields, null values, number spellings and the source version. It does not silently upgrade a V2 card to V3 or insert a missing field.
+Choose **Combine files → Choose character or lorebook JSON** to open Android's document picker. Inspect the detected format and its diagnostics before saving. V1, V2 and V3 characters use their own rules. TavernForge preserves unknown fields, null values, number spellings and the source version. It does not silently upgrade a V2 card to V3 or insert a missing field.
 
-Choose **Combine files → PNG cards and artwork**, or open **Artwork**, to import PNG or JPEG independently. A PNG can contain more than one card payload. When metadata conflicts or the preferred payload is invalid, select the intended candidate explicitly. Its original PNG and extraction provenance remain saved. An image without card metadata can be kept as artwork without inventing a character document.
+Choose **Combine files → Choose PNG card or PNG/JPEG artwork**, or open **Artwork**, to import PNG or JPEG independently. A PNG can contain more than one card payload. When metadata conflicts or the preferred payload is invalid, select the intended candidate explicitly. Its original PNG and extraction provenance remain saved. An image without card metadata can be kept as artwork without inventing a character document.
 
 Open a character's artwork/lorebook controls to attach an image or link a separately saved lorebook. Linking keeps the book independently editable. Same-version embedding copies a reviewed snapshot into the card; editing the linked book later does not silently update that snapshot. V2 books embed in V2 cards, and V3 books in V3 cards. Other combinations can remain linked and be exported separately.
 

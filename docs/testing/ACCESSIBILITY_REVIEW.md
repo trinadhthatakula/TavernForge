@@ -49,6 +49,16 @@ Use synthetic projects on the existing AVD; do not inspect the user's private ph
 
 Supervisor checks on the existing API 36 AVD used the optimized 0.6 APK and synthetic projects. Compact (1080×2400, 420 dpi), medium (800×1000, 160 dpi), and expanded (1600×1000, 160 dpi) layouts were exercised. The three creation actions, collection filters, actual PNG thumbnails, native bottom bar/rail, Story/Lore forms and expanded live inspector render correctly in the inspected screens. Hide removes the pane and centers the editor; Show restores it. A named edit survived expanded→compact resizing and Story→Lore→Story, saved as revision 2, and reopened after force-stop. The saved JSON name remained `Mira Vale AVD`.
 
-Medium dark mode at system font scale 2.0 was visually inspected: field labels, values and actions wrap without overlap. Settings and offline license text are reachable and scrollable at that scale. Screenshots are retained outside Git in the sibling evidence directory (`ui-parity-final-expanded-editor.png`, `ui-parity-medium-dark-200.png`). The screenshot transition was allowed to finish before final visual inspection.
+Medium dark mode at system font scale 2.0 was visually inspected: field labels, values and actions wrap without overlap. Settings and offline license text are reachable and scrollable at that scale. The backup destination also opens from Settings and closes back to it; its stale library-specific close label was corrected to Close backup. Screenshots are retained outside Git in the sibling evidence directory (`ui-parity-final-expanded-editor.png`, `ui-parity-medium-dark-200.png`). The screenshot transition was allowed to finish before final visual inspection.
 
 A source-review regression in new primary navigation was fixed: destination changes now pass through the existing unsaved-inspection guard. Further runtime checks are recorded below as completed. Broader TalkBack announcements, switch access, fold hinges, calibrated contrast measurements and hardware coverage remain unverified; these focused checks are not a full accessibility certification.
+
+
+Additional runtime checks passed on the final source:
+
+- At compact width and 200% text, the Combine dialog displayed both file choices and Cancel; cancellation returned to the same library. Medium Settings and bundled license paragraphs were readable and scrollable in dark mode.
+- Injected Tab moved keyboard focus to the text-generation switch. Space enabled only `Allow text generation`; the hierarchy showed image/follow-up unchecked. A second Space disabled it. All three rows expose their own label/checked state and a single focus target. The key remained absent; no provider request was sent.
+- Final-APK SAF intake selected synthetic `TavernForge-nav-guard-06.json`. Closing its inspection preserved the unsaved library card. Tapping Settings showed the discard warning; Keep this draft retained `Archive Keeper` without navigating. Continue without saving then opened Settings. No saved project was overwritten.
+- Physical phone installation used the same test signer and `install -r`. Version 0.6.0-internal/code 6 and cold launch (480ms) were verified without clearing data. Detailed UI checks used synthetic AVD data, not the user's phone documents.
+
+AVD overrides were restored to physical size/density, font scale 1.0 and light mode. This increment adds focused evidence; it does not replace the remaining TalkBack/hardware checklist.

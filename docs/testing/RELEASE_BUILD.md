@@ -42,7 +42,7 @@ ANDROID_HOME=/Users/trinadhthatakula/Library/Android/sdk ./gradlew :app:assemble
 
 Final unsigned artifact: `app/build/outputs/apk/release/app-release-unsigned.apk`, **2,373,770 bytes**, SHA-256 `cf4bb80acc0b7749f12b58b4477e4f6e747874888f4f58da3fd83044a27fbc6b`. `aapt2 dump badging` confirms package `com.valhalla.tavernforge`, version **0.6.0-internal/code 6**, min SDK 26, target 37 and no `application-debuggable`. ZIP integrity and dex presence pass; packaged notices match the audited asset byte-for-byte. `apksigner verify` deliberately fails with missing signature metadata, confirming this file is unsigned.
 
-R8 outputs include a 49,729,646-byte `mapping.txt`, 51,775-byte merged `configuration.txt`, seeds, removed-code usage, resource analysis and Compose mapping metadata. Room/serialization consumer rules are present; no missing-class failure or blanket app suppression was added. CI now verifies the unsigned optimized APK, bundled notice equality and mapping presence, retains R8 metadata alongside each commit's artifact, and attests both APKs on main. GitHub execution is recorded in status when completed.
+R8 outputs include a 49,729,646-byte `mapping.txt`, 51,775-byte merged `configuration.txt`, seeds, removed-code usage, resource analysis and Compose mapping metadata. Room/serialization consumer rules are present; no missing-class failure or blanket app suppression was added. CI now verifies the unsigned optimized APK, bundled notice equality and mapping presence, retains R8 metadata alongside each commit's artifact, and attests both APKs on main. Hosted execution and its required integration gate are linked from [PR #10](https://github.com/trinadhthatakula/TavernForge/pull/10).
 
 ## Optimized runtime evidence
 

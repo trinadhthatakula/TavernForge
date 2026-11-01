@@ -15,4 +15,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "TavernForgeCompatibilitySmoke"
+apply(from = "../../gradle/dependency-security.settings.gradle.kts")
 include(":probe")
